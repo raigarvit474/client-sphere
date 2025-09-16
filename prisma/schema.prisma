@@ -1,15 +1,224 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MANAGER
+  REP
+  READ_ONLY
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum DealStage {
+  PROSPECTING
+  QUALIFICATION
+  NEEDS_ANALYSIS
+  VALUE_PROPOSITION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  TASK
+  NOTE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Core CRM models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(REP)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // CRM relations
+  ownedContacts Contact[] @relation("ContactOwner")
+  ownedLeads    Lead[]    @relation("LeadOwner")
+  ownedDeals    Deal[]    @relation("DealOwner")
+  activities    Activity[]
+  createdActivities Activity[] @relation("ActivityCreator")
+
+  @@map("users")
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?  @unique
+  phone       String?
+  company     String?
+  position    String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  country     String?
+  notes       String?  @db.Text
+  tags        String[] @default([])
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner      User       @relation("ContactOwner", fields: [ownerId], references: [id])
+  leads      Lead[]
+  deals      Deal[]
+  activities Activity[]
+
+  @@map("contacts")
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  title       String
+  firstName   String?
+  lastName    String?
+  email       String?
+  phone       String?
+  company     String?
+  position    String?
+  source      String?
+  status      LeadStatus @default(NEW)
+  value       Decimal?   @db.Decimal(10, 2)
+  notes       String?    @db.Text
+  tags        String[]   @default([])
+  contactId   String?
+  ownerId     String
+  convertedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  contact    Contact?   @relation(fields: [contactId], references: [id])
+  owner      User       @relation("LeadOwner", fields: [ownerId], references: [id])
+  deal       Deal?
+  activities Activity[]
+
+  @@map("leads")
+}
+
+model Deal {
+  id          String    @id @default(cuid())
+  title       String
+  value       Decimal   @db.Decimal(10, 2)
+  stage       DealStage @default(PROSPECTING)
+  probability Int       @default(0) // 0-100
+  expectedCloseDate DateTime?
+  actualCloseDate   DateTime?
+  source      String?
+  notes       String?   @db.Text
+  tags        String[]  @default([])
+  contactId   String?
+  leadId      String?   @unique
+  ownerId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  contact    Contact?   @relation(fields: [contactId], references: [id])
+  lead       Lead?      @relation(fields: [leadId], references: [id])
+  owner      User       @relation("DealOwner", fields: [ownerId], references: [id])
+  activities Activity[]
+
+  @@map("deals")
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  type        ActivityType
+  priority    Priority     @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+  isCompleted Boolean      @default(false)
+  contactId   String?
+  leadId      String?
+  dealId      String?
+  assigneeId  String
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  lead      Lead?    @relation(fields: [leadId], references: [id])
+  deal      Deal?    @relation(fields: [dealId], references: [id])
+  assignee  User     @relation(fields: [assigneeId], references: [id])
+  createdBy User     @relation("ActivityCreator", fields: [createdById], references: [id])
+
+  @@map("activities")
+}
 }
