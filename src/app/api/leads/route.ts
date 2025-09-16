@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       allUsers.map(u => u.id)
     )
 
-    const where: any = {
+    const where: Record<string, any> = {
       ownerId: { in: accessibleUserIds }
     }
 

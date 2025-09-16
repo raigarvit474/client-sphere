@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { handleApiError, successResponse, parseQueryParams } from '@/lib/api-utils'
 import { createContactSchema } from '@/lib/validations'
-import { requirePermission, getCurrentUser, getAccessibleUserIds } from '@/lib/auth-utils'
+import { requirePermission, getAccessibleUserIds } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       allUsers.map(u => u.id)
     )
 
-    const where: any = {
+    const where: Record<string, any> = {
       ownerId: { in: accessibleUserIds }
     }
 
