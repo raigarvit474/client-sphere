@@ -2,7 +2,7 @@
 
 /**
  * Quick deployment verification script
- * Verifies that the NextJS CRM is ready for deployment
+ * Verifies that the Client Sphere CRM is ready for deployment
  */
 
 const { execSync } = require('child_process');
@@ -27,8 +27,8 @@ function checkFile(filePath) {
 }
 
 function main() {
-  log('🔍 NextJS CRM Deployment Verification', 'cyan');
-  log('====================================', 'cyan');
+  log('🔍 Client Sphere CRM Deployment Verification', 'cyan');
+  log('==========================================', 'cyan');
 
   const checks = [
     {
@@ -114,7 +114,7 @@ function main() {
     log('npm run deploy:prepare   # Final preparation', 'blue');
     log('vercel --prod           # Deploy to Vercel', 'blue');
     
-    log('\n🎉 Your NextJS CRM is production-ready!', 'green');
+    log('🎉 Your Client Sphere CRM is production-ready!', 'green');
   } else {
     log('❌ Some verification checks failed', 'red');
     log('Please review the issues above and run `npm run build` if needed', 'yellow');

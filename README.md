@@ -1,4 +1,4 @@
-# NextJS CRM
+# Client Sphere
 
 A modern Customer Relationship Management (CRM) system built with Next.js 15, React 19, TypeScript, Prisma, and Tailwind CSS.
 
@@ -50,7 +50,7 @@ A modern Customer Relationship Management (CRM) system built with Next.js 15, Re
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd nextjs-crm
+   cd client-sphere
    ```
 
 2. **Install dependencies**

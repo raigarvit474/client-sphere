@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CRM System - Customer Relationship Management",
+  title: "Client Sphere - Customer Relationship Management",
   description: "Comprehensive CRM system built with Next.js, TypeScript, and Prisma",
 };
 

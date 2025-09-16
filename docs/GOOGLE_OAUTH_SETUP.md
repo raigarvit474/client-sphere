@@ -1,6 +1,6 @@
 # Google OAuth Setup Guide
 
-This guide will help you set up Google OAuth authentication for your NextJS CRM application.
+This guide will help you set up Google OAuth authentication for your Client Sphere CRM application.
 
 ## 🚀 Quick Setup
 
@@ -10,7 +10,7 @@ This guide will help you set up Google OAuth authentication for your NextJS CRM 
 2. **Create a new project:**
    - Click "Select a project" at the top
    - Click "New Project"
-   - Enter your project name (e.g., "NextJS CRM")
+   - Enter your project name (e.g., "Client Sphere")
    - Click "Create"
 
 3. **Enable the Google+ API:**
@@ -25,7 +25,7 @@ This guide will help you set up Google OAuth authentication for your NextJS CRM 
 3. **Configure the consent screen:**
    - Choose "External" for user type
    - Fill in the required information:
-     - App name: "NextJS CRM"
+     - App name: "Client Sphere"
      - User support email: Your email
      - Developer contact information: Your email
    - Save and continue through the scopes (no changes needed)
@@ -33,7 +33,7 @@ This guide will help you set up Google OAuth authentication for your NextJS CRM 
 
 4. **Create OAuth client ID:**
    - Application type: "Web application"
-   - Name: "NextJS CRM Web Client"
+   - Name: "Client Sphere Web Client"
    - **Authorized redirect URIs:**
      - For development: `http://localhost:3000/api/auth/callback/google`
      - For production: `https://yourdomain.com/api/auth/callback/google`

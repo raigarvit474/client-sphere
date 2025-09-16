@@ -30,7 +30,7 @@ export default function Home() {
               </div>
             </div>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
-              Next-Gen <span className="text-blue-600">CRM</span> System
+              <span className="text-blue-600">Client Sphere</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
               Streamline your sales process, manage customer relationships, and grow your business with our comprehensive CRM solution.
@@ -282,7 +282,7 @@ export default function Home() {
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="h-8 w-8 text-blue-400" />
-                <span className="text-xl font-bold">CRM System</span>
+                <span className="text-xl font-bold">Client Sphere</span>
               </div>
               <p className="text-gray-400 mb-4">
                 The most comprehensive CRM solution for modern businesses. Built with Next.js, designed for scale.
@@ -317,7 +317,7 @@ export default function Home() {
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2024 CRM System. Built with ❤️ using modern web technologies.</p>
+            <p>&copy; 2024 Client Sphere. Built with ❤️ using modern web technologies.</p>
           </div>
         </div>
       </footer>

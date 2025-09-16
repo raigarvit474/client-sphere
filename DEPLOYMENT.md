@@ -1,6 +1,6 @@
-# NextJS CRM Deployment Guide
+# Client Sphere Deployment Guide
 
-This guide provides step-by-step instructions for deploying your NextJS CRM application on different platforms, with specific attention to Windows development environments.
+This guide provides step-by-step instructions for deploying your Client Sphere CRM application on different platforms, with specific attention to Windows development environments.
 
 ## Table of Contents
 1. [Pre-deployment Checklist](#pre-deployment-checklist)
@@ -118,7 +118,7 @@ vercel
 # Follow the prompts:
 # - Set up project: Yes
 # - Link to existing project: No
-# - Project name: nextjs-crm (or your preferred name)
+# - Project name: client-sphere (or your preferred name)
 # - Directory: ./ (current directory)
 ```
 
@@ -220,8 +220,8 @@ sudo apt install nginx -y
 #### Step 2: Deploy Application
 ```bash
 # Clone your repository
-git clone https://github.com/yourusername/nextjs-crm.git
-cd nextjs-crm
+git clone https://github.com/yourusername/client-sphere.git
+cd client-sphere
 
 # Install dependencies
 npm install
@@ -230,13 +230,13 @@ npm install
 npm run build
 
 # Start with PM2
-pm2 start npm --name "nextjs-crm" -- run start
+pm2 start npm --name "client-sphere" -- run start
 pm2 save
 pm2 startup
 ```
 
 #### Step 3: Configure Nginx
-Create `/etc/nginx/sites-available/nextjs-crm`:
+Create `/etc/nginx/sites-available/client-sphere`:
 ```nginx
 server {
     listen 80;
@@ -258,7 +258,7 @@ server {
 
 Enable the site:
 ```bash
-sudo ln -s /etc/nginx/sites-available/nextjs-crm /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/client-sphere /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 ```

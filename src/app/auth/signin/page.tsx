@@ -65,7 +65,7 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">CRM System</CardTitle>
+          <CardTitle className="text-2xl font-bold">Client Sphere</CardTitle>
           <CardDescription>
             Sign in to your account to continue
           </CardDescription>

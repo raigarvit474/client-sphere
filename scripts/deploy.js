@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Deployment script for NextJS CRM
+ * Deployment script for Client Sphere CRM
  * This script helps prepare the application for deployment
  */
 
@@ -48,8 +48,8 @@ function checkFile(filePath, description) {
 }
 
 function main() {
-  log('🚀 NextJS CRM Deployment Preparation', 'cyan');
-  log('=====================================', 'cyan');
+  log('🚀 Client Sphere CRM Deployment Preparation', 'cyan');
+  log('===========================================', 'cyan');
 
   // Pre-deployment checks
   log('\n📋 Pre-deployment Checks', 'magenta');
