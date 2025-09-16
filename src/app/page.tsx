@@ -2,22 +2,12 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowRight, BarChart3, Users, Target, Handshake, Calendar, Shield, Zap, Star, CheckCircle } from 'lucide-react'
+import { ArrowRight, BarChart3, Users, Target, Handshake, Calendar, Shield, Zap, Star, CheckCircle, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 
 export default function Home() {
   const { data: session, status } = useSession()
-  const router = useRouter()
-  
-  // Redirect to dashboard if already authenticated
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      router.push('/dashboard')
-    }
-  }, [session, status, router])
 
   if (status === 'loading') {
     return (
@@ -46,17 +36,35 @@ export default function Home() {
               Streamline your sales process, manage customer relationships, and grow your business with our comprehensive CRM solution.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button asChild size="lg" className="h-14 px-8 text-lg">
-                <Link href="/auth/signin" className="flex items-center gap-2">
-                  Get Started
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-14 px-8 text-lg">
-                <Link href="#features">
-                  Learn More
-                </Link>
-              </Button>
+              {status === 'authenticated' && session ? (
+                <>
+                  <Button asChild size="lg" className="h-14 px-8 text-lg">
+                    <Link href="/dashboard" className="flex items-center gap-2">
+                      <LayoutDashboard className="h-5 w-5" />
+                      Go to Dashboard
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="lg" className="h-14 px-8 text-lg">
+                    <Link href="#features">
+                      Learn More
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild size="lg" className="h-14 px-8 text-lg">
+                    <Link href="/auth/signin" className="flex items-center gap-2">
+                      Get Started
+                      <ArrowRight className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="lg" className="h-14 px-8 text-lg">
+                    <Link href="#features">
+                      Learn More
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
             
             {/* Stats */}
@@ -246,12 +254,21 @@ export default function Home() {
               </div>
               
               <div className="mt-8 pt-6 border-t">
-                <Button asChild size="lg" className="h-12 px-8">
-                  <Link href="/auth/signin" className="flex items-center gap-2">
-                    <Zap className="h-5 w-5" />
-                    Start Your Demo Now
-                  </Link>
-                </Button>
+                {status === 'authenticated' && session ? (
+                  <Button asChild size="lg" className="h-12 px-8">
+                    <Link href="/dashboard" className="flex items-center gap-2">
+                      <LayoutDashboard className="h-5 w-5" />
+                      Go to Dashboard
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild size="lg" className="h-12 px-8">
+                    <Link href="/auth/signin" className="flex items-center gap-2">
+                      <Zap className="h-5 w-5" />
+                      Start Your Demo Now
+                    </Link>
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -8,7 +8,7 @@ export default withAuth(
     const pathname = req.nextUrl.pathname
 
     // Public routes that don't require authentication
-    if (pathname.startsWith('/auth/')) {
+    if (pathname.startsWith('/auth/') || pathname === '/') {
       return NextResponse.next()
     }
 
