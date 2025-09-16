@@ -1,42 +1,30 @@
-# NextJS CRM Application
+# NextJS CRM
 
-A comprehensive Customer Relationship Management (CRM) web application built with Next.js 15, TypeScript, TailwindCSS, shadcn/ui, PostgreSQL, and NextAuth.
+A modern Customer Relationship Management (CRM) system built with Next.js 15, React 19, TypeScript, Prisma, and Tailwind CSS.
 
-## ✨ Features
+## 🌟 Features
 
-### 🔐 Authentication & Authorization
-- NextAuth integration with database adapter
-- Role-based access control (RBAC)
-- Four user roles: Admin, Manager, Sales Rep, Read-Only
-- Secure middleware protection
+### Core CRM Functionality
+- **Lead Management**: Create, track, and manage leads with detailed information including status, source, scoring, estimated value, expected closing date, notes, and tags
+- **Deal Management**: Handle sales pipeline with stages, values, win probability tracking, currency selection, and deal summaries
+- **Activity Management**: Schedule and track activities (tasks, calls, meetings, emails) with calendar view, priority levels, due dates, and assignment
+- **User Management**: Role-based user management with permissions, active status, and welcome email functionality
+- **Reports & Analytics**: Export data in CSV and PDF formats with various report types
 
-### 👥 User Management
-- User creation and management
-- Role assignment and permissions
-- Active/inactive user status
+### Advanced Features
+- **Calendar View**: Interactive calendar for activities with month navigation and activity type indicators
+- **Form Validation**: Comprehensive form validation using Zod schemas
+- **Responsive Design**: Mobile-first responsive interface that works on all devices
+- **Export Functionality**: Multiple export options (CSV, PDF) for reports and data analysis
+- **Real-time Updates**: Dynamic state management for seamless user experience
 
-### 📞 Contact Management
-- Complete contact profiles with personal and company information
-- Contact ownership and assignment
-- Notes and tags for organization
-
-### 🎯 Lead Management
-- Lead capture and tracking
-- Lead status progression (New → Contacted → Qualified → etc.)
-- Lead-to-contact conversion
-- Lead value tracking
-
-### 💼 Deal Management
-- Deal pipeline with customizable stages
-- Probability and value tracking
-- Expected close dates
-- Deal-to-lead relationships
-
-### 📅 Activity Management
-- Task, call, meeting, email, and note tracking
-- Activity assignment and scheduling
-- Priority levels
-- Activity completion tracking
+### Technical Features
+- **Modern Stack**: Next.js 15 with App Router, React 19, TypeScript
+- **Database**: Prisma ORM with SQLite (dev) / PostgreSQL/MySQL (prod)
+- **Authentication**: NextAuth.js with Google OAuth and credentials support
+- **UI Components**: Radix UI with Tailwind CSS and custom components
+- **Form Handling**: React Hook Form with Zod validation
+- **Code Quality**: ESLint configuration with TypeScript support
 
 ## 🛠️ Tech Stack
 
@@ -114,6 +102,27 @@ A comprehensive Customer Relationship Management (CRM) web application built wit
    
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### **Google OAuth Setup (Optional)**
+
+To enable Google authentication:
+
+1. **Go to [Google Cloud Console](https://console.cloud.google.com/)**
+2. **Create a new project or select existing**
+3. **Enable Google+ API** (or Google Identity services)
+4. **Create OAuth 2.0 credentials:**
+   - Application type: Web application
+   - Authorized redirect URIs:
+     - Development: `http://localhost:3000/api/auth/callback/google`
+     - Production: `https://yourdomain.com/api/auth/callback/google`
+5. **Copy the Client ID and Client Secret to your `.env.local` file:**
+   ```env
+   GOOGLE_CLIENT_ID="your-client-id.googleusercontent.com"
+   GOOGLE_CLIENT_SECRET="your-client-secret"
+   ```
+6. **Restart the development server**
+
+Users can now sign in with Google and will automatically be created with a "REP" role.
+
 ### Demo Accounts
 
 After running the seed script, you can login with:
@@ -123,55 +132,65 @@ After running the seed script, you can login with:
 - **Sales Rep 1**: rep1@crm.com / password123
 - **Sales Rep 2**: rep2@crm.com / password123
 
-## 📚 Available Scripts
+## 📋 Available Scripts
 
+### Development
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run test` - Run tests
-- `npm run test:watch` - Run tests in watch mode
+- `npm run lint:fix` - Fix ESLint issues automatically
+- `npm run type-check` - Run TypeScript type checking
+
+### Database
 - `npm run db:generate` - Generate Prisma client
 - `npm run db:migrate` - Run database migrations
+- `npm run db:push` - Push schema to database
 - `npm run db:seed` - Seed database with sample data
 - `npm run db:studio` - Open Prisma Studio
 - `npm run db:reset` - Reset database
 
+### Testing
+- `npm run test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:ci` - Run tests with coverage
+
+### Deployment
+- `npm run deploy:prepare` - Prepare application for deployment
+- `npm run deploy:vercel` - Deploy to Vercel
+- `npm run build:analyze` - Analyze bundle size
+- `npm run clean` - Clean build artifacts
+
 ## 🚀 Deployment
 
-### Vercel Deployment
+See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions covering:
 
-1. **Push to GitHub**
+- **Vercel** (Recommended) - Easy deployment for Next.js apps
+- **Netlify** - Alternative static site hosting
+- **DigitalOcean App Platform** - Container-based deployment
+- **Railway** - Simple database and app hosting
+- **Self-hosted** - VPS/Server deployment with Nginx
+
+### Quick Deploy to Vercel
+
+1. **Prepare for deployment**
    ```bash
-   git push origin main
+   npm run deploy:prepare
    ```
 
-2. **Deploy on Vercel**
-   - Connect your GitHub repository to Vercel
-   - Set environment variables in Vercel dashboard
-   - Deploy automatically on push
-
-3. **Environment Variables for Vercel**
-   ```
-   DATABASE_URL=postgresql://...
-   NEXTAUTH_URL=https://your-app.vercel.app
-   NEXTAUTH_SECRET=your-production-secret
-   APP_URL=https://your-app.vercel.app
-   ```
-
-### Railway Database
-
-1. **Create PostgreSQL Database**
-   - Sign up at [Railway](https://railway.app)
-   - Create new project
-   - Add PostgreSQL service
-   - Copy connection string
-
-2. **Run Migrations on Production**
+2. **Deploy to Vercel**
    ```bash
-   npx prisma migrate deploy
-   npx prisma db seed
+   npm install -g vercel
+   vercel login
+   npm run deploy:vercel
    ```
+
+3. **Configure Environment Variables**
+   - Add environment variables in Vercel dashboard
+   - Set up production database (PostgreSQL recommended)
+   - Update NEXTAUTH_URL and APP_URL to your domain
+
+For detailed step-by-step instructions, see the [Deployment Guide](DEPLOYMENT.md).
 
 ## 🔒 Security Features
 

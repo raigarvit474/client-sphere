@@ -27,7 +27,7 @@ export default withAuth(
     // Manager and Admin routes
     if (
       pathname.startsWith('/reports') &&
-      ![Role.ADMIN, Role.MANAGER].includes(userRole)
+      !([Role.ADMIN, Role.MANAGER] as Role[]).includes(userRole)
     ) {
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }

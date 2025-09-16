@@ -60,7 +60,7 @@ export type Permission = keyof typeof permissions
 
 // Check if user has specific permission
 export function hasPermission(userRole: Role, permission: Permission): boolean {
-  return permissions[permission].includes(userRole)
+  return (permissions[permission] as readonly Role[]).includes(userRole)
 }
 
 // Check if user has higher or equal role

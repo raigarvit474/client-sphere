@@ -5,13 +5,14 @@ import { updateContactSchema } from '@/lib/validations'
 import { requirePermission, canAccessResource } from '@/lib/auth-utils'
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const resolvedParams = await params
   try {
     const user = await requirePermission('CONTACT_READ')
-    const { id } = params
+    const { id } = resolvedParams
 
     const contact = await prisma.contact.findUnique({
       where: { id },
@@ -59,7 +60,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requirePermission('CONTACT_UPDATE')
-    const { id } = params
+    const resolvedParams = await params
+    const { id } = resolvedParams
     const body = await request.json()
     const validatedData = updateContactSchema.parse(body)
 
@@ -96,7 +98,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requirePermission('CONTACT_DELETE')
-    const { id } = params
+    const resolvedParams = await params
+    const { id } = resolvedParams
 
     // Check if contact exists and user has access
     const existingContact = await prisma.contact.findUnique({
