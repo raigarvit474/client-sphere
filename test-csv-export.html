@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSV Export Test</title>
+</head>
+<body>
+    <h1>CSV Export Test</h1>
+    <button onclick="testCompleteReport()">Test Complete Report CSV</button>
+    <button onclick="testSalesMetrics()">Test Sales Metrics CSV</button>
+
+    <script>
+        // Mock report data
+        const mockReportData = {
+            salesMetrics: {
+                totalRevenue: 1250000,
+                monthlyRevenue: 85000,
+                revenueGrowth: 15.5,
+                averageDealSize: 62500,
+                dealsWon: 12,
+                dealsLost: 8,
+                winRate: 60,
+                conversionRate: 22.5
+            },
+            activityMetrics: {
+                totalActivities: 156,
+                completedActivities: 124,
+                pendingActivities: 24,
+                overdueActivities: 8,
+                averageResponseTime: 2.5
+            },
+            teamPerformance: [
+                {
+                    id: '1',
+                    name: 'Sales Rep One',
+                    role: 'REP',
+                    dealsWon: 8,
+                    revenue: 520000,
+                    activitiesCompleted: 45,
+                    conversionRate: 28.5
+                },
+                {
+                    id: '2',
+                    name: 'Sales Rep Two',
+                    role: 'REP',
+                    dealsWon: 6,
+                    revenue: 380000,
+                    activitiesCompleted: 38,
+                    conversionRate: 24.2
+                }
+            ],
+            monthlyData: [
+                { month: 'Jan', revenue: 75000, deals: 8, leads: 24, activities: 145 },
+                { month: 'Feb', revenue: 82000, deals: 9, leads: 28, activities: 156 },
+                { month: 'Mar', revenue: 78000, deals: 7, leads: 22, activities: 134 }
+            ],
+            pipelineHealth: {
+                prospecting: 15,
+                qualification: 12,
+                proposal: 8,
+                negotiation: 5,
+                closedWon: 12,
+                closedLost: 8
+            }
+        }
+
+        // Export utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount)
+        }
+
+        function formatPercentage(value) {
+            return `${value.toFixed(1)}%`
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+            const link = document.createElement('a')
+            const url = URL.createObjectURL(blob)
+            
+            link.setAttribute('href', url)
+            link.setAttribute('download', filename)
+            link.style.visibility = 'hidden'
+            
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+        }
+
+        function exportCompleteReportCSV(reportData) {
+            let csvContent = 'CRM Analytics Report\n'
+            csvContent += '===================\n\n'
+            
+            // Sales Metrics Section
+            csvContent += 'SALES METRICS\n'
+            csvContent += 'Metric,Value\n'
+            csvContent += `Total Revenue,"${formatCurrency(reportData.salesMetrics.totalRevenue)}"\n`
+            csvContent += `Monthly Revenue,"${formatCurrency(reportData.salesMetrics.monthlyRevenue)}"\n`
+            csvContent += `Revenue Growth,${formatPercentage(reportData.salesMetrics.revenueGrowth)}\n`
+            csvContent += `Average Deal Size,"${formatCurrency(reportData.salesMetrics.averageDealSize)}"\n`
+            csvContent += `Deals Won,${reportData.salesMetrics.dealsWon}\n`
+            csvContent += `Deals Lost,${reportData.salesMetrics.dealsLost}\n`
+            csvContent += `Win Rate,${formatPercentage(reportData.salesMetrics.winRate)}\n`
+            csvContent += `Conversion Rate,${formatPercentage(reportData.salesMetrics.conversionRate)}\n\n`
+            
+            // Activity Metrics Section
+            csvContent += 'ACTIVITY METRICS\n'
+            csvContent += 'Metric,Value\n'
+            csvContent += `Total Activities,${reportData.activityMetrics.totalActivities}\n`
+            csvContent += `Completed Activities,${reportData.activityMetrics.completedActivities}\n`
+            csvContent += `Pending Activities,${reportData.activityMetrics.pendingActivities}\n`
+            csvContent += `Overdue Activities,${reportData.activityMetrics.overdueActivities}\n`
+            csvContent += `Average Response Time,"${reportData.activityMetrics.averageResponseTime} days"\n\n`
+            
+            // Team Performance Section
+            csvContent += 'TEAM PERFORMANCE\n'
+            csvContent += 'Name,Role,Deals Won,Revenue Generated,Activities Completed,Conversion Rate\n'
+            reportData.teamPerformance.forEach(member => {
+                csvContent += `"${member.name}",${member.role},${member.dealsWon},"${formatCurrency(member.revenue)}",${member.activitiesCompleted},${formatPercentage(member.conversionRate)}\n`
+            })
+            csvContent += '\n'
+            
+            // Monthly Data Section
+            csvContent += 'MONTHLY TRENDS\n'
+            csvContent += 'Month,Revenue,Deals,Leads,Activities\n'
+            reportData.monthlyData.forEach(month => {
+                csvContent += `${month.month},"${formatCurrency(month.revenue)}",${month.deals},${month.leads},${month.activities}\n`
+            })
+            csvContent += '\n'
+            
+            // Pipeline Health Section
+            csvContent += 'PIPELINE HEALTH\n'
+            csvContent += 'Stage,Count\n'
+            Object.entries(reportData.pipelineHealth).forEach(([stage, count]) => {
+                const formattedStage = stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                csvContent += `"${formattedStage}",${count}\n`
+            })
+
+            downloadCSV(csvContent, 'complete-analytics-report.csv')
+        }
+
+        function exportSalesMetricsCSV(salesMetrics) {
+            let csvContent = 'Sales Metrics Report\n'
+            csvContent += 'Metric,Value\n'
+            csvContent += `Total Revenue,"${formatCurrency(salesMetrics.totalRevenue)}"\n`
+            csvContent += `Monthly Revenue,"${formatCurrency(salesMetrics.monthlyRevenue)}"\n`
+            csvContent += `Revenue Growth,${formatPercentage(salesMetrics.revenueGrowth)}\n`
+            csvContent += `Average Deal Size,"${formatCurrency(salesMetrics.averageDealSize)}"\n`
+            csvContent += `Deals Won,${salesMetrics.dealsWon}\n`
+            csvContent += `Deals Lost,${salesMetrics.dealsLost}\n`
+            csvContent += `Win Rate,${formatPercentage(salesMetrics.winRate)}\n`
+            csvContent += `Conversion Rate,${formatPercentage(salesMetrics.conversionRate)}\n`
+
+            downloadCSV(csvContent, 'sales-metrics-report.csv')
+        }
+
+        function testCompleteReport() {
+            console.log('Testing complete report CSV export...')
+            exportCompleteReportCSV(mockReportData)
+        }
+
+        function testSalesMetrics() {
+            console.log('Testing sales metrics CSV export...')
+            exportSalesMetricsCSV(mockReportData.salesMetrics)
+        }
+    </script>
+</body>
+</html>

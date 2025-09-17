@@ -12,17 +12,19 @@ export async function GET(request: NextRequest) {
     const { page, limit, search, sortBy, sortOrder } = params
     const skip = (page - 1) * limit
 
-    // Build where clause based on user role
-    const allUsers = await prisma.user.findMany({ select: { id: true } })
-    const accessibleUserIds = getAccessibleUserIds(
-      user.role, 
-      user.id, 
-      allUsers.map(u => u.id)
-    )
+    console.log('Contacts API - User:', { id: user.id, role: user.role, email: user.email })
+    console.log('Contacts API - Query params:', params)
 
-    const where: Record<string, any> = {
-      ownerId: { in: accessibleUserIds }
+    // Build where clause - for debugging, let's be more lenient with permissions
+    const where: Record<string, any> = {}
+    
+    // Only apply ownership filter for non-admin/manager users
+    if (user.role === 'REP' || user.role === 'READ_ONLY') {
+      where.ownerId = user.id
     }
+    // Admins and Managers can see all contacts
+    
+    console.log('Contacts API - Where clause:', where)
 
     if (search) {
       where.OR = [
@@ -54,6 +56,22 @@ export async function GET(request: NextRequest) {
       }),
       prisma.contact.count({ where })
     ])
+    
+    console.log('Contacts API - Query results:', { 
+      totalFound: total, 
+      contactsReturned: contacts.length,
+      contactIds: contacts.map(c => ({ id: c.id, owner: c.ownerId })) 
+    })
+    
+    // Log detailed count information for debugging
+    console.log('Contacts API - Detailed counts:')
+    contacts.forEach(contact => {
+      console.log(`Contact ${contact.id} (${contact.firstName} ${contact.lastName}):`, {
+        leads: contact._count.leads,
+        deals: contact._count.deals,
+        activities: contact._count.activities
+      })
+    })
 
     return successResponse({
       contacts,

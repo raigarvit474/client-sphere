@@ -25,6 +25,10 @@ import {
 import { Dialog } from '@/components/ui/dialog'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { AddLeadForm } from '@/components/forms/add-lead-form'
+import { EditLeadForm } from '@/components/forms/edit-lead-form'
+import { ConvertLeadToDealForm } from '@/components/forms/convert-lead-to-deal-form'
+import { LeadDetailsModal } from '@/components/modals/lead-details-modal'
+import { DeleteLeadDialog } from '@/components/modals/delete-lead-dialog'
 
 interface Lead {
   id: string
@@ -86,97 +90,73 @@ export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isConvertToDealDialogOpen, setIsConvertToDealDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
 
-  // Mock data for now - will be replaced with API calls
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockLeads: Lead[] = [
-        {
-          id: '1',
-          title: 'Enterprise Software Solution',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@techcorp.com',
-          phone: '+1-555-0123',
-          company: 'TechCorp Inc',
-          position: 'CTO',
-          source: 'Website',
-          status: 'QUALIFIED',
-          value: 50000,
-          notes: 'Interested in enterprise solution',
-          tags: ['enterprise', 'software'],
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-15T10:30:00Z',
-          updatedAt: '2024-01-20T14:45:00Z'
-        },
-        {
-          id: '2',
-          title: 'Marketing Automation',
-          firstName: 'Sarah',
-          lastName: 'Wilson',
-          email: 'sarah.wilson@marketing.com',
-          phone: '+1-555-0124',
-          company: 'Marketing Pro',
-          position: 'Marketing Director',
-          source: 'Cold Call',
-          status: 'CONTACTED',
-          value: 25000,
-          notes: 'Needs marketing automation tools',
-          tags: ['marketing', 'automation'],
-          owner: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdAt: '2024-01-10T09:15:00Z',
-          updatedAt: '2024-01-18T11:20:00Z'
-        },
-        {
-          id: '3',
-          title: 'Cloud Infrastructure',
-          firstName: 'Mike',
-          lastName: 'Johnson',
-          email: 'mike.johnson@cloudtech.com',
-          company: 'CloudTech Solutions',
-          position: 'IT Director',
-          source: 'Referral',
-          status: 'NEW',
-          value: 75000,
-          notes: 'Looking to migrate to cloud',
-          tags: ['cloud', 'infrastructure'],
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-22T16:00:00Z',
-          updatedAt: '2024-01-22T16:00:00Z'
-        }
-      ]
-
-      setLeads(mockLeads)
+  // Fetch leads from API
+  const fetchLeads = async () => {
+    try {
+      setLoading(true)
+      console.log('Fetching leads...')
+      const response = await fetch('/api/leads')
+      console.log('Leads response status:', response.status)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Leads API Error:', errorText)
+        throw new Error('Failed to fetch leads')
+      }
+      const response_data = await response.json()
+      console.log('Received leads API response:', response_data)
+      
+      // The API returns { success: true, data: { leads: [...], pagination: {...} } }
+      const data = response_data.data || response_data
+      console.log('Extracted leads data:', data)
+      console.log('Raw leads from API:', data.leads)
+      
+      setLeads(data.leads || [])
       
       // Calculate stats
-      const newLeads = mockLeads.filter(lead => lead.status === 'NEW').length
-      const qualified = mockLeads.filter(lead => lead.status === 'QUALIFIED').length
-      const contacted = mockLeads.filter(lead => lead.status === 'CONTACTED').length
-      const totalValue = mockLeads.reduce((sum, lead) => sum + (lead.value || 0), 0)
-
-      setStats({
-        total: mockLeads.length,
-        new: newLeads,
+      const leads = data.leads || []
+      console.log('Leads for stats calculation:', leads.map((l: any) => ({ id: l.id, title: l.title, value: l.value, type: typeof l.value })))
+      
+      const newLeads = leads.filter((lead: Lead) => lead.status === 'NEW').length
+      const qualified = leads.filter((lead: Lead) => lead.status === 'QUALIFIED').length
+      const contacted = leads.filter((lead: Lead) => lead.status === 'CONTACTED').length
+      
+      // Convert Decimal values to numbers for calculation
+      const totalValue = leads.reduce((sum: number, lead: any) => {
+        const value = typeof lead.value === 'string' ? parseFloat(lead.value) : (lead.value || 0)
+        return sum + value
+      }, 0)
+      
+      console.log('Leads stats calculated:', {
+        totalLeads: leads.length,
+        newLeads,
         qualified,
         contacted,
         totalValue
       })
       
+      setStats({
+        total: leads.length,
+        new: newLeads,
+        qualified,
+        contacted,
+        totalValue
+      })
+    } catch (error) {
+      console.error('Error fetching leads:', error)
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
+
+  useEffect(() => {
+    fetchLeads()
   }, [])
 
   const filteredLeads = leads.filter(lead => {
@@ -202,42 +182,173 @@ export default function LeadsPage() {
   }
 
   const handleCreateLead = async (data: Record<string, any>) => {
-    // Simulate API call
-    const newLead: Lead = {
-      id: Date.now().toString(),
-      title: data.title,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email || undefined,
-      phone: data.phone || undefined,
-      company: data.company || undefined,
-      position: data.position || undefined,
-      source: data.source || undefined,
-      status: data.status || 'NEW',
-      value: data.estimatedValue || undefined,
-      notes: data.notes || undefined,
-      tags: data.tags || [],
-      owner: {
-        id: session?.user?.id || '1',
-        name: session?.user?.name || 'Current User',
-        email: session?.user?.email || 'user@crm.com'
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    try {
+      console.log('Creating lead with data:', data)
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.title,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email || undefined,
+          phone: data.phone || undefined,
+          company: data.company || undefined,
+          position: data.position || undefined,
+          source: data.source || undefined,
+          status: data.status || 'NEW',
+          // Remove invalid fields that don't exist in schema
+          // score: data.score || undefined,
+          estimatedValue: data.estimatedValue || undefined,
+          // expectedCloseDate: data.expectedCloseDate || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || []
+        })
+      })
+      console.log('Create lead response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Create lead error:', errorText)
+        throw new Error('Failed to create lead')
+      }
+
+      const newLead = await response.json()
+      console.log('Lead created successfully:', newLead)
+      
+      // Refresh the leads list
+      console.log('Refreshing leads list...')
+      await fetchLeads()
+    } catch (error) {
+      console.error('Error creating lead:', error)
+      throw error // Let the form handle the error
     }
+  }
 
-    setLeads(prev => [newLead, ...prev])
-    
-    // Update stats
-    setStats(prev => ({
-      total: prev.total + 1,
-      new: prev.new + (data.status === 'NEW' ? 1 : 0),
-      qualified: prev.qualified + (data.status === 'QUALIFIED' ? 1 : 0),
-      contacted: prev.contacted + (data.status === 'CONTACTED' ? 1 : 0),
-      totalValue: prev.totalValue + (data.estimatedValue || 0)
-    }))
+  const handleEditLead = async (data: any) => {
+    if (!selectedLead) return
+    try {
+      console.log('Updating lead with data:', data)
+      const response = await fetch(`/api/leads/${selectedLead.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.title,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email || undefined,
+          phone: data.phone || undefined,
+          company: data.company || undefined,
+          position: data.position || undefined,
+          source: data.source || undefined,
+          status: data.status || 'NEW',
+          estimatedValue: data.estimatedValue || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || []
+        })
+      })
 
-    console.log('Lead created:', newLead)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update lead error:', errorText)
+        throw new Error('Failed to update lead')
+      }
+
+      console.log('Lead updated successfully')
+      await fetchLeads()
+      setIsEditDialogOpen(false)
+      setSelectedLead(null)
+    } catch (error) {
+      console.error('Error updating lead:', error)
+      throw error
+    }
+  }
+
+  const handleDeleteLead = async (leadId: string) => {
+    try {
+      console.log('Deleting lead:', leadId)
+      const response = await fetch(`/api/leads/${leadId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Delete lead error:', errorText)
+        throw new Error('Failed to delete lead')
+      }
+
+      console.log('Lead deleted successfully')
+      await fetchLeads()
+      setIsDeleteDialogOpen(false)
+      setSelectedLead(null)
+      setSelectedLeadId(null)
+    } catch (error) {
+      console.error('Error deleting lead:', error)
+      throw error
+    }
+  }
+
+  const handleConvertToDeal = async (data: any) => {
+    try {
+      console.log('Converting lead to deal with data:', data)
+      const response = await fetch('/api/deals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.title,
+          value: data.value,
+          stage: data.stage || 'PROSPECTING',
+          probability: data.probability || 0,
+          expectedCloseDate: data.expectedCloseDate || undefined,
+          source: data.source || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || [],
+          leadId: data.leadId,
+          contactId: data.contactId
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Convert to deal error:', errorText)
+        throw new Error('Failed to convert lead to deal')
+      }
+
+      console.log('Lead converted to deal successfully')
+      await fetchLeads()
+      setIsConvertToDealDialogOpen(false)
+      setSelectedLead(null)
+    } catch (error) {
+      console.error('Error converting lead to deal:', error)
+      throw error
+    }
+  }
+
+  const openDetailsModal = (lead: Lead) => {
+    setSelectedLead(lead)
+    setIsDetailsModalOpen(true)
+  }
+
+  const openEditDialog = (lead: Lead) => {
+    setSelectedLead(lead)
+    setIsEditDialogOpen(true)
+  }
+
+  const openDeleteDialog = (lead: Lead) => {
+    setSelectedLead(lead)
+    setSelectedLeadId(lead.id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const openConvertToDealDialog = (lead: Lead) => {
+    setSelectedLead(lead)
+    setIsConvertToDealDialogOpen(true)
   }
 
   if (loading) {
@@ -438,11 +549,20 @@ export default function LeadsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Edit Lead</DropdownMenuItem>
-                            <DropdownMenuItem>Convert to Deal</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDetailsModal(lead)}>
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditDialog(lead)}>
+                              Edit Lead
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openConvertToDealDialog(lead)}>
+                              Convert to Deal
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem 
+                              className="text-red-600" 
+                              onClick={() => openDeleteDialog(lead)}
+                            >
                               Delete Lead
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -468,6 +588,70 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Lead Details Modal */}
+      {isDetailsModalOpen && selectedLead && (
+        <LeadDetailsModal
+          lead={selectedLead}
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false)
+            setSelectedLead(null)
+          }}
+          onEdit={() => {
+            setIsDetailsModalOpen(false)
+            openEditDialog(selectedLead)
+          }}
+          onConvert={() => {
+            setIsDetailsModalOpen(false)
+            openConvertToDealDialog(selectedLead)
+          }}
+          onDelete={() => {
+            setIsDetailsModalOpen(false)
+            openDeleteDialog(selectedLead)
+          }}
+        />
+      )}
+
+      {/* Edit Lead Dialog */}
+      {isEditDialogOpen && selectedLead && (
+        <EditLeadForm
+          lead={selectedLead}
+          isOpen={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false)
+            setSelectedLead(null)
+          }}
+          onSave={handleEditLead}
+        />
+      )}
+
+      {/* Convert Lead to Deal Dialog */}
+      {isConvertToDealDialogOpen && selectedLead && (
+        <ConvertLeadToDealForm
+          lead={selectedLead}
+          isOpen={isConvertToDealDialogOpen}
+          onClose={() => {
+            setIsConvertToDealDialogOpen(false)
+            setSelectedLead(null)
+          }}
+          onConvert={handleConvertToDeal}
+        />
+      )}
+
+      {/* Delete Lead Dialog */}
+      {isDeleteDialogOpen && selectedLeadId && (
+        <DeleteLeadDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => {
+            setIsDeleteDialogOpen(false)
+            setSelectedLead(null)
+            setSelectedLeadId(null)
+          }}
+          onConfirm={() => handleDeleteLead(selectedLeadId)}
+          leadTitle={selectedLead?.company || selectedLead?.title || 'this lead'}
+        />
+      )}
     </DashboardLayout>
   )
 }

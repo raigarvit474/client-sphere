@@ -43,6 +43,7 @@ type UserFormData = z.infer<typeof userSchema>
 interface AddUserFormProps {
   onSubmit: (data: UserFormData) => Promise<void> | void
   onCancel: () => void
+  isSubmitting?: boolean
 }
 
 const roles = [
@@ -80,8 +81,9 @@ const roles = [
   }
 ]
 
-export function AddUserForm({ onSubmit, onCancel }: AddUserFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function AddUserForm({ onSubmit, onCancel, isSubmitting: externalIsSubmitting }: AddUserFormProps) {
+  const [internalIsSubmitting, setInternalIsSubmitting] = useState(false)
+  const isSubmitting = externalIsSubmitting ?? internalIsSubmitting
   const [selectedRole, setSelectedRole] = useState<string>('')
 
   const {
@@ -102,14 +104,20 @@ export function AddUserForm({ onSubmit, onCancel }: AddUserFormProps) {
   const sendWelcomeEmail = watch('sendWelcomeEmail')
 
   const onFormSubmit = async (data: UserFormData) => {
-    setIsSubmitting(true)
+    if (externalIsSubmitting === undefined) {
+      setInternalIsSubmitting(true)
+    }
     try {
       await onSubmit(data)
-      onCancel() // Close dialog on success
+      if (externalIsSubmitting === undefined) {
+        onCancel() // Close dialog on success only if managing internally
+      }
     } catch (error) {
       console.error('Error creating user:', error)
     } finally {
-      setIsSubmitting(false)
+      if (externalIsSubmitting === undefined) {
+        setInternalIsSubmitting(false)
+      }
     }
   }
 
@@ -273,15 +281,15 @@ export function AddUserForm({ onSubmit, onCancel }: AddUserFormProps) {
           </div>
         </div>
 
-        {/* Security Notice */}
+        {/* Auth Notice */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-start">
             <Shield className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-blue-900">Security Notice</p>
+              <p className="font-medium text-blue-900">Authentication Notice</p>
               <p className="text-blue-700 mt-1">
-                The user will be required to change their password on first login. 
-                Make sure to communicate the temporary credentials securely.
+                Users will sign in through the configured authentication providers (OAuth, etc.). 
+                The user will need to use the same email address to authenticate.
               </p>
             </div>
           </div>

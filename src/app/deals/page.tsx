@@ -25,6 +25,10 @@ import {
 import { Dialog } from '@/components/ui/dialog'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { AddDealForm } from '@/components/forms/add-deal-form'
+import { EditDealForm } from '@/components/forms/edit-deal-form'
+import { ViewDealDialog } from '@/components/dialogs/view-deal-dialog'
+import { MoveDealStageDialog } from '@/components/dialogs/move-deal-stage-dialog'
+import { DeleteDealDialog } from '@/components/dialogs/delete-deal-dialog'
 
 interface Deal {
   id: string
@@ -46,6 +50,8 @@ interface Deal {
   lead?: {
     id: string
     title: string
+    firstName: string
+    lastName: string
   }
   owner: {
     id: string
@@ -101,153 +107,138 @@ export default function DealsPage() {
   const [stageFilter, setStageFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'pipeline' | 'table'>('pipeline')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  
+  // Dialog states
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isMoveStageDialogOpen, setIsMoveStageDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  
+  // Data for form dropdowns
+  const [contacts, setContacts] = useState<Array<{ id: string; firstName: string; lastName: string; company?: string }>>([])
+  const [leads, setLeads] = useState<Array<{ id: string; title: string; firstName: string; lastName: string }>>([])
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([])
 
-  // Mock data for now
-  useEffect(() => {
-    setTimeout(() => {
-      const mockDeals: Deal[] = [
-        {
-          id: '1',
-          title: 'Enterprise CRM Implementation',
-          value: 150000,
-          stage: 'PROPOSAL',
-          probability: 75,
-          expectedCloseDate: '2024-02-15',
-          source: 'Inbound',
-          notes: 'Large enterprise deal with multiple stakeholders',
-          tags: ['enterprise', 'crm'],
-          contact: {
-            id: '1',
-            firstName: 'John',
-            lastName: 'Smith',
-            company: 'TechCorp Inc'
-          },
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-10T10:00:00Z',
-          updatedAt: '2024-01-25T15:30:00Z'
-        },
-        {
-          id: '2',
-          title: 'Marketing Automation Suite',
-          value: 75000,
-          stage: 'NEGOTIATION',
-          probability: 85,
-          expectedCloseDate: '2024-02-05',
-          source: 'Referral',
-          notes: 'Ready to close, just finalizing terms',
-          tags: ['marketing', 'automation'],
-          contact: {
-            id: '2',
-            firstName: 'Sarah',
-            lastName: 'Johnson',
-            company: 'Marketing Pro'
-          },
-          owner: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdAt: '2024-01-05T14:20:00Z',
-          updatedAt: '2024-01-28T09:45:00Z'
-        },
-        {
-          id: '3',
-          title: 'Cloud Infrastructure Migration',
-          value: 200000,
-          stage: 'QUALIFICATION',
-          probability: 40,
-          expectedCloseDate: '2024-03-20',
-          source: 'Cold Outreach',
-          notes: 'Early stage, needs technical validation',
-          tags: ['cloud', 'infrastructure'],
-          contact: {
-            id: '3',
-            firstName: 'Mike',
-            lastName: 'Wilson',
-            company: 'CloudTech Solutions'
-          },
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-20T11:15:00Z',
-          updatedAt: '2024-01-29T16:00:00Z'
-        },
-        {
-          id: '4',
-          title: 'Small Business Package',
-          value: 25000,
-          stage: 'CLOSED_WON',
-          probability: 100,
-          expectedCloseDate: '2024-01-30',
-          actualCloseDate: '2024-01-28',
-          source: 'Website',
-          notes: 'Closed successfully, smooth process',
-          tags: ['small-business', 'package'],
-          contact: {
-            id: '4',
-            firstName: 'Lisa',
-            lastName: 'Davis',
-            company: 'Small Biz Co'
-          },
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-15T13:30:00Z',
-          updatedAt: '2024-01-28T17:20:00Z'
-        },
-        {
-          id: '5',
-          title: 'Analytics Platform',
-          value: 50000,
-          stage: 'PROSPECTING',
-          probability: 20,
-          expectedCloseDate: '2024-04-15',
-          source: 'Trade Show',
-          notes: 'Early prospect, needs more qualification',
-          tags: ['analytics', 'platform'],
-          contact: {
-            id: '5',
-            firstName: 'David',
-            lastName: 'Brown',
-            company: 'Data Analytics Inc'
-          },
-          owner: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdAt: '2024-01-25T08:45:00Z',
-          updatedAt: '2024-01-30T10:15:00Z'
-        }
-      ]
-
-      setDeals(mockDeals)
-
+  // Fetch deals from API
+  const fetchDeals = async () => {
+    try {
+      setLoading(true)
+      console.log('Fetching deals...')
+      const response = await fetch('/api/deals')
+      console.log('Deals response status:', response.status)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Deals API Error:', errorText)
+        throw new Error('Failed to fetch deals')
+      }
+      const response_data = await response.json()
+      console.log('Received deals API response:', response_data)
+      
+      // The API returns { success: true, data: { deals: [...], pagination: {...} } }
+      const data = response_data.data || response_data
+      console.log('Extracted deals data:', data)
+      console.log('Raw deals from API:', data.deals)
+      
+      setDeals(data.deals || [])
+      
       // Calculate stats
-      const totalValue = mockDeals.reduce((sum, deal) => sum + deal.value, 0)
-      const closedWonDeals = mockDeals.filter(deal => deal.stage === 'CLOSED_WON')
-      const totalClosedDeals = mockDeals.filter(deal => 
+      const deals = data.deals || []
+      console.log('Deals for stats calculation:', deals.map((d: any) => ({ id: d.id, title: d.title, value: d.value, type: typeof d.value })))
+      
+      // Convert Decimal values to numbers for calculation
+      const totalValue = deals.reduce((sum: number, deal: any) => {
+        const value = typeof deal.value === 'string' ? parseFloat(deal.value) : (deal.value || 0)
+        return sum + value
+      }, 0)
+      
+      const closedWonDeals = deals.filter((deal: Deal) => deal.stage === 'CLOSED_WON')
+      const totalClosedDeals = deals.filter((deal: Deal) => 
         deal.stage === 'CLOSED_WON' || deal.stage === 'CLOSED_LOST'
       ).length
-
-      setStats({
-        total: mockDeals.length,
+      
+      console.log('Deals stats calculated:', {
+        totalDeals: deals.length,
         totalValue,
-        averageValue: totalValue / mockDeals.length,
+        averageValue: deals.length > 0 ? totalValue / deals.length : 0,
+        closedWon: closedWonDeals.length
+      })
+      
+      setStats({
+        total: deals.length,
+        totalValue,
+        averageValue: deals.length > 0 ? totalValue / deals.length : 0,
         closedWon: closedWonDeals.length,
         winRate: totalClosedDeals > 0 ? (closedWonDeals.length / totalClosedDeals) * 100 : 0
       })
-
+    } catch (error) {
+      console.error('Error fetching deals:', error)
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
+
+  // Fetch contacts for dropdown
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('/api/contacts')
+      if (response.ok) {
+        const data = await response.json()
+        const contactsData = data.data?.contacts || data.contacts || []
+        setContacts(contactsData.map((contact: any) => ({
+          id: contact.id,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          company: contact.company
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+    }
+  }
+
+  // Fetch leads for dropdown
+  const fetchLeads = async () => {
+    try {
+      const response = await fetch('/api/leads')
+      if (response.ok) {
+        const data = await response.json()
+        const leadsData = data.data?.leads || data.leads || []
+        setLeads(leadsData.map((lead: any) => ({
+          id: lead.id,
+          title: lead.title,
+          firstName: lead.firstName,
+          lastName: lead.lastName
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching leads:', error)
+    }
+  }
+
+  // Fetch users for dropdown
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users')
+      if (response.ok) {
+        const data = await response.json()
+        const usersData = data.data?.users || data.users || []
+        setUsers(usersData.map((user: any) => ({
+          id: user.id,
+          name: user.name || user.email,
+          email: user.email
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchDeals()
+    fetchContacts()
+    fetchLeads()
+    fetchUsers()
   }, [])
 
   const filteredDeals = deals.filter(deal => {
@@ -279,42 +270,148 @@ export default function DealsPage() {
   }
 
   const handleCreateDeal = async (data: Record<string, any>) => {
-    // Simulate API call
-    const newDeal: Deal = {
-      id: Date.now().toString(),
-      title: data.title,
-      value: data.value,
-      stage: data.stage || 'PROSPECTING',
-      probability: data.probability || 10,
-      expectedCloseDate: data.expectedCloseDate || undefined,
-      source: data.source || undefined,
-      notes: data.notes || undefined,
-      tags: [],
-      owner: {
-        id: session?.user?.id || '1',
-        name: session?.user?.name || 'Current User',
-        email: session?.user?.email || 'user@crm.com'
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
+    try {
+      console.log('Creating deal with data:', data)
+      const response = await fetch('/api/deals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.title,
+          value: data.value,
+          stage: data.stage || 'PROSPECTING',
+          probability: data.probability || 10,
+          expectedCloseDate: data.expectedCloseDate || undefined,
+          source: data.source || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || [],
+          contactId: data.contactId || undefined,
+          leadId: data.leadId || undefined
+        })
+      })
+      console.log('Create deal response status:', response.status)
 
-    setDeals(prev => [newDeal, ...prev])
-    
-    // Update stats
-    setStats(prev => {
-      const newTotalValue = prev.totalValue + data.value
-      const newTotal = prev.total + 1
-      return {
-        total: newTotal,
-        totalValue: newTotalValue,
-        averageValue: newTotalValue / newTotal,
-        closedWon: prev.closedWon,
-        winRate: prev.winRate
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Create deal error:', errorText)
+        throw new Error('Failed to create deal')
       }
-    })
 
-    console.log('Deal created:', newDeal)
+      const newDeal = await response.json()
+      console.log('Deal created successfully:', newDeal)
+      
+      // Refresh the deals list
+      console.log('Refreshing deals list...')
+      await fetchDeals()
+    } catch (error) {
+      console.error('Error creating deal:', error)
+      throw error // Let the form handle the error
+    }
+  }
+
+  // Dialog handlers
+  const handleViewDeal = (deal: Deal) => {
+    setSelectedDeal(deal)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleEditDeal = (deal: Deal) => {
+    setSelectedDeal(deal)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleMoveStage = (deal: Deal) => {
+    setSelectedDeal(deal)
+    setIsMoveStageDialogOpen(true)
+  }
+
+  const handleDeleteDeal = (deal: Deal) => {
+    setSelectedDeal(deal)
+    setIsDeleteDialogOpen(true)
+  }
+
+  // API operations
+  const handleUpdateDeal = async (data: Record<string, any>) => {
+    if (!selectedDeal) return
+
+    try {
+      const response = await fetch(`/api/deals/${selectedDeal.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update deal error:', errorText)
+        throw new Error('Failed to update deal')
+      }
+
+      await fetchDeals() // Refresh the deals list
+    } catch (error) {
+      console.error('Error updating deal:', error)
+      throw error
+    }
+  }
+
+  const handleMoveStageConfirm = async (newStage: string, newProbability: number) => {
+    if (!selectedDeal) return
+
+    try {
+      const response = await fetch(`/api/deals/${selectedDeal.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stage: newStage,
+          probability: newProbability
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Move deal stage error:', errorText)
+        throw new Error('Failed to move deal stage')
+      }
+
+      await fetchDeals() // Refresh the deals list
+    } catch (error) {
+      console.error('Error moving deal stage:', error)
+      throw error
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedDeal) return
+
+    try {
+      const response = await fetch(`/api/deals/${selectedDeal.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Delete deal error:', errorText)
+        throw new Error('Failed to delete deal')
+      }
+
+      await fetchDeals() // Refresh the deals list
+    } catch (error) {
+      console.error('Error deleting deal:', error)
+      throw error
+    }
+  }
+
+  const closeAllDialogs = () => {
+    setSelectedDeal(null)
+    setIsViewDialogOpen(false)
+    setIsEditDialogOpen(false)
+    setIsMoveStageDialogOpen(false)
+    setIsDeleteDialogOpen(false)
   }
 
   if (loading) {
@@ -363,6 +460,9 @@ export default function DealsPage() {
               <AddDealForm
                 onSubmit={handleCreateDeal}
                 onCancel={() => setIsCreateDialogOpen(false)}
+                contacts={contacts}
+                leads={leads}
+                users={users}
               />
             </Dialog>
           </div>
@@ -505,12 +605,21 @@ export default function DealsPage() {
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Deal</DropdownMenuItem>
-                                <DropdownMenuItem>Move Stage</DropdownMenuItem>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDeal(deal)}>
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditDeal(deal)}>
+                                  Edit Deal
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleMoveStage(deal)}>
+                                  Move Stage
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteDeal(deal)}
+                                >
                                   Delete Deal
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -634,11 +743,20 @@ export default function DealsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
-                              <DropdownMenuItem>Edit Deal</DropdownMenuItem>
-                              <DropdownMenuItem>Move Stage</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewDeal(deal)}>
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditDeal(deal)}>
+                                Edit Deal
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleMoveStage(deal)}>
+                                Move Stage
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => handleDeleteDeal(deal)}
+                              >
                                 Delete Deal
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -665,6 +783,45 @@ export default function DealsPage() {
           </Card>
         )}
       </div>
+
+      {/* Dialogs */}
+      {selectedDeal && (
+        <>
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <ViewDealDialog
+              deal={selectedDeal}
+              onClose={closeAllDialogs}
+            />
+          </Dialog>
+
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <EditDealForm
+              deal={selectedDeal}
+              onSubmit={handleUpdateDeal}
+              onCancel={closeAllDialogs}
+              contacts={contacts}
+              leads={leads}
+              users={users}
+            />
+          </Dialog>
+
+          <Dialog open={isMoveStageDialogOpen} onOpenChange={setIsMoveStageDialogOpen}>
+            <MoveDealStageDialog
+              deal={selectedDeal}
+              onMove={handleMoveStageConfirm}
+              onCancel={closeAllDialogs}
+            />
+          </Dialog>
+
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DeleteDealDialog
+              deal={selectedDeal}
+              onDelete={handleDeleteConfirm}
+              onCancel={closeAllDialogs}
+            />
+          </Dialog>
+        </>
+      )}
     </DashboardLayout>
   )
 }

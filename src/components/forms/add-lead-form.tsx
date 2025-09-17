@@ -35,9 +35,10 @@ const leadSchema = z.object({
   position: z.string().optional(),
   status: z.enum(['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'CLOSED_WON', 'CLOSED_LOST']).default('NEW'),
   source: z.enum(['WEBSITE', 'REFERRAL', 'COLD_CALL', 'EMAIL', 'SOCIAL_MEDIA', 'EVENT', 'ADVERTISEMENT', 'OTHER']).optional(),
-  score: z.number().min(0).max(100).optional(),
+  // Removed invalid fields that don't exist in Prisma schema
+  // score: z.number().min(0).max(100).optional(),
   estimatedValue: z.number().positive().optional(),
-  expectedCloseDate: z.string().optional(),
+  // expectedCloseDate: z.string().optional(),
   notes: z.string().optional(),
   tags: z.array(z.string()).optional()
 })
@@ -258,39 +259,20 @@ export function AddLeadForm({ onSubmit, onCancel }: AddLeadFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="score">Lead Score (0-100)</Label>
-            <Input
-              id="score"
-              type="number"
-              {...register('score', { valueAsNumber: true })}
-              placeholder="75"
-              min="0"
-              max="100"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="estimatedValue">Est. Value ($)</Label>
-            <Input
-              id="estimatedValue"
-              type="number"
-              {...register('estimatedValue', { valueAsNumber: true })}
-              placeholder="50000"
-              min="0"
-              step="0.01"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="expectedCloseDate">Expected Close Date</Label>
-            <Input
-              id="expectedCloseDate"
-              type="date"
-              {...register('expectedCloseDate')}
-            />
-          </div>
+        {/* Lead Value */}
+        <div>
+          <Label htmlFor="estimatedValue">Estimated Value ($)</Label>
+          <Input
+            id="estimatedValue"
+            type="number"
+            {...register('estimatedValue', { valueAsNumber: true })}
+            placeholder="50000"
+            min="0"
+            step="0.01"
+          />
+          {errors.estimatedValue && (
+            <p className="text-sm text-red-600 mt-1">{errors.estimatedValue.message}</p>
+          )}
         </div>
 
         {/* Tags */}

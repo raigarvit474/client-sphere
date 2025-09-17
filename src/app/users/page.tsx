@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Plus, Search, Filter, MoreHorizontal, Users, UserCheck, Shield, Eye, EyeOff, Mail, Calendar } from 'lucide-react'
+import { Plus, Search, Filter, MoreHorizontal, Users, UserCheck, Shield, Eye, EyeOff, Mail, Calendar, UserCog, Trash, UserX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +25,11 @@ import {
 import { Dialog } from '@/components/ui/dialog'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { AddUserForm } from '@/components/forms/add-user-form'
+import { EditUserForm } from '@/components/forms/edit-user-form'
+import { ViewUserDialog } from '@/components/dialogs/view-user-dialog'
+import { ChangeRoleDialog } from '@/components/dialogs/change-role-dialog'
+import { DeleteUserDialog } from '@/components/dialogs/delete-user-dialog'
+import { toast } from '@/components/ui/use-toast'
 
 interface User {
   id: string
@@ -77,133 +82,67 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  
+  // Dialog states for user actions
+  const [viewUser, setViewUser] = useState<User | null>(null)
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [changeRoleUser, setChangeRoleUser] = useState<User | null>(null)
+  const [deleteUser, setDeleteUser] = useState<User | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const currentUser = session?.user
   const isAdmin = currentUser?.role === 'ADMIN'
   const isManager = currentUser?.role === 'MANAGER' || isAdmin
 
-  // Mock data for now
-  useEffect(() => {
-    setTimeout(() => {
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          name: 'Admin User',
-          email: 'admin@crm.com',
-          role: 'ADMIN',
-          isActive: true,
-          emailVerified: '2024-01-01T00:00:00Z',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-30T10:00:00Z',
-          _count: {
-            ownedContacts: 5,
-            ownedLeads: 3,
-            ownedDeals: 2,
-            activities: 12
-          }
-        },
-        {
-          id: '2',
-          name: 'Sales Manager',
-          email: 'manager@crm.com',
-          role: 'MANAGER',
-          isActive: true,
-          emailVerified: '2024-01-02T00:00:00Z',
-          createdAt: '2024-01-02T00:00:00Z',
-          updatedAt: '2024-01-29T15:30:00Z',
-          _count: {
-            ownedContacts: 15,
-            ownedLeads: 8,
-            ownedDeals: 6,
-            activities: 25
-          }
-        },
-        {
-          id: '3',
-          name: 'Sales Rep One',
-          email: 'rep1@crm.com',
-          role: 'REP',
-          isActive: true,
-          emailVerified: '2024-01-03T00:00:00Z',
-          createdAt: '2024-01-03T00:00:00Z',
-          updatedAt: '2024-01-30T09:15:00Z',
-          _count: {
-            ownedContacts: 25,
-            ownedLeads: 12,
-            ownedDeals: 8,
-            activities: 35
-          }
-        },
-        {
-          id: '4',
-          name: 'Sales Rep Two',
-          email: 'rep2@crm.com',
-          role: 'REP',
-          isActive: true,
-          emailVerified: '2024-01-04T00:00:00Z',
-          createdAt: '2024-01-04T00:00:00Z',
-          updatedAt: '2024-01-28T14:20:00Z',
-          _count: {
-            ownedContacts: 18,
-            ownedLeads: 7,
-            ownedDeals: 4,
-            activities: 22
-          }
-        },
-        {
-          id: '5',
-          name: 'Read Only User',
-          email: 'readonly@crm.com',
-          role: 'READ_ONLY',
-          isActive: true,
-          createdAt: '2024-01-05T00:00:00Z',
-          updatedAt: '2024-01-25T11:45:00Z',
-          _count: {
-            ownedContacts: 0,
-            ownedLeads: 0,
-            ownedDeals: 0,
-            activities: 5
-          }
-        },
-        {
-          id: '6',
-          name: 'Inactive User',
-          email: 'inactive@crm.com',
-          role: 'REP',
-          isActive: false,
-          emailVerified: '2024-01-06T00:00:00Z',
-          createdAt: '2024-01-06T00:00:00Z',
-          updatedAt: '2024-01-20T16:00:00Z',
-          _count: {
-            ownedContacts: 3,
-            ownedLeads: 1,
-            ownedDeals: 0,
-            activities: 8
-          }
-        }
-      ]
-
-      setUsers(mockUsers)
-
+  // Fetch users from API
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      console.log('Fetching users...')
+      const response = await fetch('/api/users')
+      console.log('Users response status:', response.status)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Users API Error:', errorText)
+        throw new Error('Failed to fetch users')
+      }
+      const response_data = await response.json()
+      console.log('Received users API response:', response_data)
+      
+      // The API returns { success: true, data: { users: [...], pagination: {...} } }
+      const data = response_data.data || response_data
+      console.log('Extracted users data:', data)
+      
+      setUsers(data.users || [])
+      
       // Calculate stats
-      const active = mockUsers.filter(user => user.isActive).length
-      const inactive = mockUsers.filter(user => !user.isActive).length
-      const admins = mockUsers.filter(user => user.role === 'ADMIN').length
-      const managers = mockUsers.filter(user => user.role === 'MANAGER').length
-      const reps = mockUsers.filter(user => user.role === 'REP').length
-
+      const users = data.users || []
+      const active = users.filter((user: User) => user.isActive).length
+      const inactive = users.filter((user: User) => !user.isActive).length
+      const admins = users.filter((user: User) => user.role === 'ADMIN').length
+      const managers = users.filter((user: User) => user.role === 'MANAGER').length
+      const reps = users.filter((user: User) => user.role === 'REP').length
+      
       setStats({
-        total: mockUsers.length,
+        total: users.length,
         active,
         inactive,
         admins,
         managers,
         reps
       })
-
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
       setLoading(false)
-    }, 1000)
-  }, [])
+    }
+  }
+
+  useEffect(() => {
+    if (isManager) {
+      fetchUsers()
+    }
+  }, [isManager])
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = !searchTerm || 
@@ -233,55 +172,242 @@ export default function UsersPage() {
     return false
   }
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers(prev => prev.map(user => {
-      if (user.id === userId) {
-        return { ...user, isActive: !user.isActive }
+  const toggleUserStatus = async (userId: string) => {
+    try {
+      const userToUpdate = users.find(u => u.id === userId)
+      if (!userToUpdate) return
+      
+      setIsSubmitting(true)
+      const newStatus = !userToUpdate.isActive
+
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'updateStatus',
+          isActive: newStatus
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update status error:', errorText)
+        throw new Error('Failed to update user status')
       }
-      return user
-    }))
+
+      // Update users in state
+      setUsers(prev => prev.map(user => {
+        if (user.id === userId) {
+          return { ...user, isActive: newStatus }
+        }
+        return user
+      }))
+      
+      toast({
+        title: newStatus ? 'User Activated' : 'User Deactivated',
+        description: `${userToUpdate.name || userToUpdate.email} has been ${newStatus ? 'activated' : 'deactivated'}.`,
+        variant: newStatus ? 'default' : 'destructive',
+      })
+    } catch (error) {
+      console.error('Error updating user status:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update user status.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const changeUserRole = (userId: string, newRole: string) => {
-    setUsers(prev => prev.map(user => {
-      if (user.id === userId) {
-        return { ...user, role: newRole }
+  const handleChangeRole = async (data: { role: string }) => {
+    if (!changeRoleUser) return
+    
+    try {
+      setIsSubmitting(true)
+      const response = await fetch(`/api/users/${changeRoleUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'updateRole',
+          role: data.role
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update role error:', errorText)
+        throw new Error('Failed to update user role')
       }
-      return user
-    }))
+
+      // Update users in state
+      setUsers(prev => prev.map(user => {
+        if (user.id === changeRoleUser.id) {
+          return { ...user, role: data.role }
+        }
+        return user
+      }))
+      
+      toast({
+        title: 'Role Updated',
+        description: `${changeRoleUser.name || changeRoleUser.email}'s role has been updated to ${data.role.replace('_', ' ')}.`,
+      })
+      
+      // Refresh stats
+      await fetchUsers()
+    } catch (error) {
+      console.error('Error updating user role:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update user role.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmitting(false)
+      setChangeRoleUser(null)
+    }
   }
 
   const handleCreateUser = async (data: Record<string, any>) => {
-    // Simulate API call
-    const newUser: User = {
-      id: Date.now().toString(),
-      name: data.name,
-      email: data.email,
-      role: data.role,
-      isActive: data.isActive || true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      _count: {
-        ownedContacts: 0,
-        ownedLeads: 0,
-        ownedDeals: 0,
-        activities: 0
+    try {
+      setIsSubmitting(true)
+      console.log('Creating user with data:', data)
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          role: data.role,
+          isActive: data.isActive !== false // Default to true if not specified
+        })
+      })
+      console.log('Create user response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Create user error:', errorText)
+        throw new Error('Failed to create user')
       }
+
+      const newUser = await response.json()
+      console.log('User created successfully:', newUser)
+      
+      // Refresh the users list
+      await fetchUsers()
+      setIsCreateDialogOpen(false)
+      
+      toast({
+        title: 'User Created',
+        description: `${data.name || data.email} has been successfully created.`,
+      })
+    } catch (error) {
+      console.error('Error creating user:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create user. Please try again.',
+        variant: 'destructive',
+      })
+      throw error // Let the form handle the error
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setUsers(prev => [newUser, ...prev])
+  }
+  
+  const handleEditUser = async (data: Record<string, any>) => {
+    if (!editUser) return
     
-    // Update stats
-    setStats(prev => ({
-      total: prev.total + 1,
-      active: prev.active + (data.isActive ? 1 : 0),
-      inactive: prev.inactive + (data.isActive ? 0 : 1),
-      admins: prev.admins + (data.role === 'ADMIN' ? 1 : 0),
-      managers: prev.managers + (data.role === 'MANAGER' ? 1 : 0),
-      reps: prev.reps + (data.role === 'REP' ? 1 : 0)
-    }))
-
-    console.log('User created:', newUser)
+    try {
+      setIsSubmitting(true)
+      console.log('Updating user with data:', data)
+      const response = await fetch(`/api/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          isActive: data.isActive,
+          password: data.password || undefined // Only include if provided
+        })
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update user error:', errorText)
+        throw new Error('Failed to update user')
+      }
+      
+      // Refresh the users list
+      await fetchUsers()
+      setEditUser(null)
+      
+      toast({
+        title: 'User Updated',
+        description: `${data.name || data.email}'s profile has been updated.`,
+      })
+    } catch (error) {
+      console.error('Error updating user:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update user. Please try again.',
+        variant: 'destructive',
+      })
+      throw error // Let the form handle the error
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
+  const handleDeleteUser = async (data: { transferUserId?: string }) => {
+    if (!deleteUser) return
+    
+    try {
+      setIsSubmitting(true)
+      const response = await fetch(`/api/users/${deleteUser.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transferUserId: data.transferUserId === 'NONE' ? undefined : data.transferUserId
+        })
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Delete user error:', errorText)
+        throw new Error('Failed to delete user')
+      }
+      
+      // Refresh the users list
+      await fetchUsers()
+      setDeleteUser(null)
+      
+      toast({
+        title: 'User Deleted',
+        description: `${deleteUser.name || deleteUser.email} has been permanently deleted.`,
+        variant: 'destructive',
+      })
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete user. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!isManager) {
@@ -329,9 +455,59 @@ export default function UsersPage() {
               <AddUserForm
                 onSubmit={handleCreateUser}
                 onCancel={() => setIsCreateDialogOpen(false)}
+                isSubmitting={isSubmitting}
               />
             </Dialog>
           )}
+          
+          {/* View User Dialog */}
+          <Dialog open={!!viewUser} onOpenChange={(open) => !open && setViewUser(null)}>
+            {viewUser && (
+              <ViewUserDialog 
+                user={viewUser} 
+                onClose={() => setViewUser(null)} 
+              />
+            )}
+          </Dialog>
+          
+          {/* Edit User Dialog */}
+          <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
+            {editUser && (
+              <EditUserForm
+                user={editUser}
+                currentUserRole={currentUser?.role || ''}
+                currentUserId={currentUser?.id || ''}
+                onSubmit={handleEditUser}
+                onCancel={() => setEditUser(null)}
+                isSubmitting={isSubmitting}
+              />
+            )}
+          </Dialog>
+          
+          {/* Change Role Dialog */}
+          <Dialog open={!!changeRoleUser} onOpenChange={(open) => !open && setChangeRoleUser(null)}>
+            {changeRoleUser && (
+              <ChangeRoleDialog
+                user={changeRoleUser}
+                currentUserRole={currentUser?.role || ''}
+                onSave={handleChangeRole}
+                onClose={() => setChangeRoleUser(null)}
+              />
+            )}
+          </Dialog>
+          
+          {/* Delete User Dialog */}
+          <Dialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
+            {deleteUser && (
+              <DeleteUserDialog
+                user={deleteUser}
+                currentUserRole={currentUser?.role || ''}
+                availableUsers={users.filter(u => u.id !== deleteUser.id && u.isActive)}
+                onDelete={handleDeleteUser}
+                onClose={() => setDeleteUser(null)}
+              />
+            )}
+          </Dialog>
         </div>
 
         {/* Stats Cards */}
@@ -566,21 +742,22 @@ export default function UsersPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>View Profile</DropdownMenuItem>
-                              <DropdownMenuItem>Edit User</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setViewUser(user)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setEditUser(user)}>
+                                <UserCog className="h-4 w-4 mr-2" />
+                                Edit User
+                              </DropdownMenuItem>
                               
-                              {user.role !== 'ADMIN' && isAdmin && (
+                              {((user.role !== 'ADMIN' && isAdmin) || 
+                                (user.role !== 'ADMIN' && user.role !== 'MANAGER' && currentUser?.role === 'MANAGER')) && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuLabel>Change Role</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => changeUserRole(user.id, 'MANAGER')}>
-                                    Make Manager
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => changeUserRole(user.id, 'REP')}>
-                                    Make Sales Rep
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => changeUserRole(user.id, 'READ_ONLY')}>
-                                    Make Read Only
+                                  <DropdownMenuItem onClick={() => setChangeRoleUser(user)}>
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    Change Role
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -588,13 +765,28 @@ export default function UsersPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => toggleUserStatus(user.id)}
+                                disabled={isSubmitting}
                                 className={user.isActive ? 'text-red-600' : 'text-green-600'}
                               >
-                                {user.isActive ? 'Deactivate User' : 'Activate User'}
+                                {user.isActive ? (
+                                  <>
+                                    <EyeOff className="h-4 w-4 mr-2" />
+                                    Deactivate User
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="h-4 w-4 mr-2" />
+                                    Activate User
+                                  </>
+                                )}
                               </DropdownMenuItem>
                               
                               {user.id !== currentUser?.id && (
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem 
+                                  onClick={() => setDeleteUser(user)}
+                                  className="text-red-600"
+                                >
+                                  <UserX className="h-4 w-4 mr-2" />
                                   Delete User
                                 </DropdownMenuItem>
                               )}

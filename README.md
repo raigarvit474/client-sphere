@@ -163,7 +163,7 @@ After running the seed script, you can login with:
 
 ## 🚀 Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions covering:
+This application can be deployed on various platforms:
 
 - **Vercel** (Recommended) - Easy deployment for Next.js apps
 - **Netlify** - Alternative static site hosting
@@ -190,7 +190,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions cov
    - Set up production database (PostgreSQL recommended)
    - Update NEXTAUTH_URL and APP_URL to your domain
 
-For detailed step-by-step instructions, see the [Deployment Guide](DEPLOYMENT.md).
+Make sure to set up your production database and update environment variables accordingly.
 
 ## 🔒 Security Features
 

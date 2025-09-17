@@ -25,6 +25,9 @@ import {
 import { Dialog } from '@/components/ui/dialog'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { AddActivityForm } from '@/components/forms/add-activity-form'
+import { EditActivityForm } from '@/components/forms/edit-activity-form'
+import { ViewActivityDialog } from '@/components/dialogs/view-activity-dialog'
+import { DeleteActivityDialog } from '@/components/dialogs/delete-activity-dialog'
 import { ActivityCalendar } from '@/components/calendar/activity-calendar'
 
 interface Activity {
@@ -45,6 +48,8 @@ interface Activity {
   lead?: {
     id: string
     title: string
+    firstName: string
+    lastName: string
   }
   deal?: {
     id: string
@@ -115,198 +120,124 @@ export default function ActivitiesPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  
+  // Dialog states
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  
+  // Data for form dropdowns
+  const [contacts, setContacts] = useState<Array<{ id: string; firstName: string; lastName: string; company?: string }>>([])
+  const [deals, setDeals] = useState<Array<{ id: string; title: string; value?: number }>>([])
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([])
 
-  // Mock data for now
-  useEffect(() => {
-    setTimeout(() => {
-      const mockActivities: Activity[] = [
-        {
-          id: '1',
-          title: 'Follow up call with TechCorp',
-          description: 'Discuss enterprise package requirements and pricing',
-          type: 'CALL',
-          priority: 'HIGH',
-          dueDate: '2024-02-01T14:00:00Z',
-          isCompleted: false,
-          contact: {
-            id: '1',
-            firstName: 'John',
-            lastName: 'Smith',
-            company: 'TechCorp Inc'
-          },
-          deal: {
-            id: '1',
-            title: 'Enterprise CRM Implementation'
-          },
-          assignee: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdBy: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-25T10:00:00Z',
-          updatedAt: '2024-01-25T10:00:00Z'
-        },
-        {
-          id: '2',
-          title: 'Send proposal document',
-          description: 'Email the updated proposal with revised pricing',
-          type: 'EMAIL',
-          priority: 'URGENT',
-          dueDate: '2024-01-30T09:00:00Z',
-          isCompleted: true,
-          completedAt: '2024-01-29T16:30:00Z',
-          contact: {
-            id: '2',
-            firstName: 'Sarah',
-            lastName: 'Johnson',
-            company: 'Marketing Pro'
-          },
-          deal: {
-            id: '2',
-            title: 'Marketing Automation Suite'
-          },
-          assignee: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdBy: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdAt: '2024-01-28T11:00:00Z',
-          updatedAt: '2024-01-29T16:30:00Z'
-        },
-        {
-          id: '3',
-          title: 'Product demo meeting',
-          description: 'Schedule and conduct product demonstration',
-          type: 'MEETING',
-          priority: 'MEDIUM',
-          dueDate: '2024-02-05T15:00:00Z',
-          isCompleted: false,
-          contact: {
-            id: '3',
-            firstName: 'Mike',
-            lastName: 'Wilson',
-            company: 'CloudTech Solutions'
-          },
-          lead: {
-            id: '3',
-            title: 'Cloud Infrastructure Migration'
-          },
-          assignee: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdBy: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-20T14:00:00Z',
-          updatedAt: '2024-01-20T14:00:00Z'
-        },
-        {
-          id: '4',
-          title: 'Update CRM records',
-          description: 'Update contact information and deal status',
-          type: 'TASK',
-          priority: 'LOW',
-          dueDate: '2024-02-02T17:00:00Z',
-          isCompleted: false,
-          assignee: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdBy: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdAt: '2024-01-22T09:00:00Z',
-          updatedAt: '2024-01-22T09:00:00Z'
-        },
-        {
-          id: '5',
-          title: 'Client meeting notes',
-          description: 'Document key points from client discovery call',
-          type: 'NOTE',
-          priority: 'MEDIUM',
-          isCompleted: true,
-          completedAt: '2024-01-26T10:15:00Z',
-          contact: {
-            id: '4',
-            firstName: 'Lisa',
-            lastName: 'Davis',
-            company: 'Small Biz Co'
-          },
-          assignee: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdBy: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          createdAt: '2024-01-26T10:15:00Z',
-          updatedAt: '2024-01-26T10:15:00Z'
-        },
-        {
-          id: '6',
-          title: 'Contract review call',
-          description: 'Review contract terms with legal team',
-          type: 'CALL',
-          priority: 'HIGH',
-          dueDate: '2024-01-28T11:00:00Z',
-          isCompleted: false,
-          assignee: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdBy: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          createdAt: '2024-01-25T15:30:00Z',
-          updatedAt: '2024-01-25T15:30:00Z'
-        }
-      ]
-
-      setActivities(mockActivities)
-
+  // Fetch activities from API
+  const fetchActivities = async () => {
+    try {
+      setLoading(true)
+      console.log('Fetching activities...')
+      const response = await fetch('/api/activities')
+      console.log('Activities response status:', response.status)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Activities API Error:', errorText)
+        throw new Error('Failed to fetch activities')
+      }
+      const response_data = await response.json()
+      console.log('Received activities API response:', response_data)
+      
+      // The API returns { success: true, data: { activities: [...], pagination: {...} } }
+      const data = response_data.data || response_data
+      console.log('Extracted activities data:', data)
+      
+      setActivities(data.activities || [])
+      
       // Calculate stats
-      const completed = mockActivities.filter(activity => activity.isCompleted).length
-      const pending = mockActivities.filter(activity => !activity.isCompleted).length
+      const activities = data.activities || []
+      const completed = activities.filter((activity: Activity) => activity.isCompleted).length
+      const pending = activities.filter((activity: Activity) => !activity.isCompleted).length
       const now = new Date()
-      const overdue = mockActivities.filter(activity => 
+      const overdue = activities.filter((activity: Activity) => 
         !activity.isCompleted && 
         activity.dueDate && 
         new Date(activity.dueDate) < now
       ).length
-
+      
       setStats({
-        total: mockActivities.length,
+        total: activities.length,
         completed,
         pending,
         overdue,
-        completionRate: mockActivities.length > 0 ? (completed / mockActivities.length) * 100 : 0
+        completionRate: activities.length > 0 ? (completed / activities.length) * 100 : 0
       })
-
+    } catch (error) {
+      console.error('Error fetching activities:', error)
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
+
+  // Fetch contacts for dropdown
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('/api/contacts')
+      if (response.ok) {
+        const data = await response.json()
+        const contactsData = data.data?.contacts || data.contacts || []
+        setContacts(contactsData.map((contact: any) => ({
+          id: contact.id,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          company: contact.company
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+    }
+  }
+
+  // Fetch deals for dropdown
+  const fetchDeals = async () => {
+    try {
+      const response = await fetch('/api/deals')
+      if (response.ok) {
+        const data = await response.json()
+        const dealsData = data.data?.deals || data.deals || []
+        setDeals(dealsData.map((deal: any) => ({
+          id: deal.id,
+          title: deal.title,
+          value: deal.value
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching deals:', error)
+    }
+  }
+
+  // Fetch users for dropdown
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users')
+      if (response.ok) {
+        const data = await response.json()
+        const usersData = data.data?.users || data.users || []
+        setUsers(usersData.map((user: any) => ({
+          id: user.id,
+          name: user.name || user.email,
+          email: user.email
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchActivities()
+    fetchContacts()
+    fetchDeals()
+    fetchUsers()
   }, [])
 
   const filteredActivities = activities.filter(activity => {
@@ -340,56 +271,145 @@ export default function ActivitiesPage() {
     return new Date(activity.dueDate) < new Date()
   }
 
-  const toggleCompletion = (activityId: string) => {
-    setActivities(prev => prev.map(activity => {
-      if (activity.id === activityId) {
-        const isCompleted = !activity.isCompleted
-        return {
-          ...activity,
-          isCompleted,
-          completedAt: isCompleted ? new Date().toISOString() : undefined
-        }
+  // Dialog handlers
+  const handleViewActivity = (activity: Activity) => {
+    setSelectedActivity(activity)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleEditActivity = (activity: Activity) => {
+    setSelectedActivity(activity)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleDeleteActivity = (activity: Activity) => {
+    setSelectedActivity(activity)
+    setIsDeleteDialogOpen(true)
+  }
+
+  // API operations
+  const toggleCompletion = async (activityId: string) => {
+    try {
+      const activity = activities.find(a => a.id === activityId)
+      if (!activity) return
+
+      const response = await fetch(`/api/activities/${activityId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isCompleted: !activity.isCompleted
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Toggle completion error:', errorText)
+        throw new Error('Failed to toggle completion')
       }
-      return activity
-    }))
+
+      await fetchActivities() // Refresh the activities list
+    } catch (error) {
+      console.error('Error toggling completion:', error)
+    }
+  }
+
+  const handleUpdateActivity = async (data: Record<string, any>) => {
+    if (!selectedActivity) return
+
+    try {
+      const response = await fetch(`/api/activities/${selectedActivity.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update activity error:', errorText)
+        throw new Error('Failed to update activity')
+      }
+
+      await fetchActivities() // Refresh the activities list
+    } catch (error) {
+      console.error('Error updating activity:', error)
+      throw error
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedActivity) return
+
+    try {
+      const response = await fetch(`/api/activities/${selectedActivity.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Delete activity error:', errorText)
+        throw new Error('Failed to delete activity')
+      }
+
+      await fetchActivities() // Refresh the activities list
+    } catch (error) {
+      console.error('Error deleting activity:', error)
+      throw error
+    }
+  }
+
+  const closeAllDialogs = () => {
+    setSelectedActivity(null)
+    setIsViewDialogOpen(false)
+    setIsEditDialogOpen(false)
+    setIsDeleteDialogOpen(false)
   }
 
   const handleCreateActivity = async (data: Record<string, any>) => {
-    // Simulate API call
-    const newActivity: Activity = {
-      id: Date.now().toString(),
-      title: data.title,
-      description: data.description || undefined,
-      type: data.type,
-      priority: data.priority,
-      dueDate: data.dueDate || undefined,
-      isCompleted: data.isCompleted || false,
-      assignee: {
-        id: session?.user?.id || '1',
-        name: session?.user?.name || 'Current User',
-        email: session?.user?.email || 'user@crm.com'
-      },
-      createdBy: {
-        id: session?.user?.id || '1',
-        name: session?.user?.name || 'Current User',
-        email: session?.user?.email || 'user@crm.com'
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    try {
+      console.log('Creating activity with data:', data)
+      const response = await fetch('/api/activities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description || undefined,
+          type: data.type,
+          priority: data.priority,
+          dueDate: data.dueDate || undefined,
+          dueTime: data.dueTime || undefined,
+          contactId: data.contactId || undefined,
+          dealId: data.dealId || undefined,
+          assigneeId: data.assigneeId || undefined,
+          isCompleted: data.isCompleted || false,
+          reminderMinutes: data.reminderMinutes || undefined,
+          location: data.location || undefined,
+          notes: data.notes || undefined
+        })
+      })
+      console.log('Create activity response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Create activity error:', errorText)
+        throw new Error('Failed to create activity')
+      }
+
+      const newActivity = await response.json()
+      console.log('Activity created successfully:', newActivity)
+      
+      // Refresh the activities list
+      console.log('Refreshing activities list...')
+      await fetchActivities()
+    } catch (error) {
+      console.error('Error creating activity:', error)
+      throw error // Let the form handle the error
     }
-
-    setActivities(prev => [newActivity, ...prev])
-    
-    // Update stats
-    setStats(prev => ({
-      total: prev.total + 1,
-      completed: prev.completed + (data.isCompleted ? 1 : 0),
-      pending: prev.pending + (data.isCompleted ? 0 : 1),
-      overdue: prev.overdue,
-      completionRate: prev.total > 0 ? ((prev.completed + (data.isCompleted ? 1 : 0)) / (prev.total + 1)) * 100 : 0
-    }))
-
-    console.log('Activity created:', newActivity)
   }
 
   if (loading) {
@@ -438,6 +458,9 @@ export default function ActivitiesPage() {
               <AddActivityForm
                 onSubmit={handleCreateActivity}
                 onCancel={() => setIsCreateDialogOpen(false)}
+                contacts={contacts}
+                deals={deals}
+                users={users}
               />
             </Dialog>
           </div>
@@ -678,15 +701,22 @@ export default function ActivitiesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
-                              <DropdownMenuItem>Edit Activity</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewActivity(activity)}>
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditActivity(activity)}>
+                                Edit Activity
+                              </DropdownMenuItem>
                               {!activity.isCompleted && (
                                 <DropdownMenuItem onClick={() => toggleCompletion(activity.id)}>
                                   Mark Complete
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => handleDeleteActivity(activity)}
+                              >
                                 Delete Activity
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -724,6 +754,37 @@ export default function ActivitiesPage() {
           />
         )}
       </div>
+
+      {/* Dialogs */}
+      {selectedActivity && (
+        <>
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <ViewActivityDialog
+              activity={selectedActivity}
+              onClose={closeAllDialogs}
+            />
+          </Dialog>
+
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <EditActivityForm
+              activity={selectedActivity}
+              onSubmit={handleUpdateActivity}
+              onCancel={closeAllDialogs}
+              contacts={contacts}
+              deals={deals}
+              users={users}
+            />
+          </Dialog>
+
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DeleteActivityDialog
+              activity={selectedActivity}
+              onDelete={handleDeleteConfirm}
+              onCancel={closeAllDialogs}
+            />
+          </Dialog>
+        </>
+      )}
     </DashboardLayout>
   )
 }

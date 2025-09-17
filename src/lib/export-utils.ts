@@ -148,51 +148,52 @@ export function exportMonthlyDataCSV(monthlyData: ExportData['monthlyData']): vo
 
 // Export complete report as CSV
 export function exportCompleteReportCSV(reportData: ExportData): void {
-  let csvContent = 'CRM Analytics Report\\n'
-  csvContent += '===================\\n\\n'
+  let csvContent = 'CRM Analytics Report\n'
+  csvContent += '===================\n\n'
   
   // Sales Metrics Section
-  csvContent += 'SALES METRICS\\n'
-  csvContent += 'Metric,Value\\n'
-  csvContent += `Total Revenue,${formatCurrency(reportData.salesMetrics.totalRevenue)}\\n`
-  csvContent += `Monthly Revenue,${formatCurrency(reportData.salesMetrics.monthlyRevenue)}\\n`
-  csvContent += `Revenue Growth,${formatPercentage(reportData.salesMetrics.revenueGrowth)}\\n`
-  csvContent += `Average Deal Size,${formatCurrency(reportData.salesMetrics.averageDealSize)}\\n`
-  csvContent += `Deals Won,${reportData.salesMetrics.dealsWon}\\n`
-  csvContent += `Deals Lost,${reportData.salesMetrics.dealsLost}\\n`
-  csvContent += `Win Rate,${formatPercentage(reportData.salesMetrics.winRate)}\\n`
-  csvContent += `Conversion Rate,${formatPercentage(reportData.salesMetrics.conversionRate)}\\n\\n`
+  csvContent += 'SALES METRICS\n'
+  csvContent += 'Metric,Value\n'
+  csvContent += `Total Revenue,"${formatCurrency(reportData.salesMetrics.totalRevenue)}"\n`
+  csvContent += `Monthly Revenue,"${formatCurrency(reportData.salesMetrics.monthlyRevenue)}"\n`
+  csvContent += `Revenue Growth,${formatPercentage(reportData.salesMetrics.revenueGrowth)}\n`
+  csvContent += `Average Deal Size,"${formatCurrency(reportData.salesMetrics.averageDealSize)}"\n`
+  csvContent += `Deals Won,${reportData.salesMetrics.dealsWon}\n`
+  csvContent += `Deals Lost,${reportData.salesMetrics.dealsLost}\n`
+  csvContent += `Win Rate,${formatPercentage(reportData.salesMetrics.winRate)}\n`
+  csvContent += `Conversion Rate,${formatPercentage(reportData.salesMetrics.conversionRate)}\n\n`
   
   // Activity Metrics Section
-  csvContent += 'ACTIVITY METRICS\\n'
-  csvContent += 'Metric,Value\\n'
-  csvContent += `Total Activities,${reportData.activityMetrics.totalActivities}\\n`
-  csvContent += `Completed Activities,${reportData.activityMetrics.completedActivities}\\n`
-  csvContent += `Pending Activities,${reportData.activityMetrics.pendingActivities}\\n`
-  csvContent += `Overdue Activities,${reportData.activityMetrics.overdueActivities}\\n`
-  csvContent += `Average Response Time,${reportData.activityMetrics.averageResponseTime} days\\n\\n`
+  csvContent += 'ACTIVITY METRICS\n'
+  csvContent += 'Metric,Value\n'
+  csvContent += `Total Activities,${reportData.activityMetrics.totalActivities}\n`
+  csvContent += `Completed Activities,${reportData.activityMetrics.completedActivities}\n`
+  csvContent += `Pending Activities,${reportData.activityMetrics.pendingActivities}\n`
+  csvContent += `Overdue Activities,${reportData.activityMetrics.overdueActivities}\n`
+  csvContent += `Average Response Time,"${reportData.activityMetrics.averageResponseTime} days"\n\n`
   
   // Team Performance Section
-  csvContent += 'TEAM PERFORMANCE\\n'
-  csvContent += 'Name,Role,Deals Won,Revenue Generated,Activities Completed,Conversion Rate\\n'
+  csvContent += 'TEAM PERFORMANCE\n'
+  csvContent += 'Name,Role,Deals Won,Revenue Generated,Activities Completed,Conversion Rate\n'
   reportData.teamPerformance.forEach(member => {
-    csvContent += `${member.name},${member.role},${member.dealsWon},${formatCurrency(member.revenue)},${member.activitiesCompleted},${formatPercentage(member.conversionRate)}\\n`
+    csvContent += `"${member.name}",${member.role},${member.dealsWon},"${formatCurrency(member.revenue)}",${member.activitiesCompleted},${formatPercentage(member.conversionRate)}\n`
   })
-  csvContent += '\\n'
+  csvContent += '\n'
   
   // Monthly Data Section
-  csvContent += 'MONTHLY TRENDS\\n'
-  csvContent += 'Month,Revenue,Deals,Leads,Activities\\n'
+  csvContent += 'MONTHLY TRENDS\n'
+  csvContent += 'Month,Revenue,Deals,Leads,Activities\n'
   reportData.monthlyData.forEach(month => {
-    csvContent += `${month.month},${formatCurrency(month.revenue)},${month.deals},${month.leads},${month.activities}\\n`
+    csvContent += `${month.month},"${formatCurrency(month.revenue)}",${month.deals},${month.leads},${month.activities}\n`
   })
-  csvContent += '\\n'
+  csvContent += '\n'
   
   // Pipeline Health Section
-  csvContent += 'PIPELINE HEALTH\\n'
-  csvContent += 'Stage,Count\\n'
+  csvContent += 'PIPELINE HEALTH\n'
+  csvContent += 'Stage,Count\n'
   Object.entries(reportData.pipelineHealth).forEach(([stage, count]) => {
-    csvContent += `${stage.replace('_', ' ')},${count}\\n`
+    const formattedStage = stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    csvContent += `"${formattedStage}",${count}\n`
   })
 
   downloadCSV(csvContent, 'complete-analytics-report.csv')

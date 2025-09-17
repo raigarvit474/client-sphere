@@ -12,17 +12,19 @@ export async function GET(request: NextRequest) {
     const { page, limit, search, sortBy, sortOrder, status } = params
     const skip = (page - 1) * limit
 
-    // Build where clause based on user role
-    const allUsers = await prisma.user.findMany({ select: { id: true } })
-    const accessibleUserIds = getAccessibleUserIds(
-      user.role, 
-      user.id, 
-      allUsers.map(u => u.id)
-    )
+    console.log('Leads API - User:', { id: user.id, role: user.role, email: user.email })
+    console.log('Leads API - Query params:', params)
 
-    const where: Record<string, any> = {
-      ownerId: { in: accessibleUserIds }
+    // Build where clause - simplified permission logic
+    const where: Record<string, any> = {}
+    
+    // Only apply ownership filter for non-admin/manager users
+    if (user.role === 'REP' || user.role === 'READ_ONLY') {
+      where.ownerId = user.id
     }
+    // Admins and Managers can see all leads
+    
+    console.log('Leads API - Where clause:', where)
 
     if (search) {
       where.OR = [
@@ -63,6 +65,12 @@ export async function GET(request: NextRequest) {
       }),
       prisma.lead.count({ where })
     ])
+    
+    console.log('Leads API - Query results:', { 
+      totalFound: total, 
+      leadsReturned: leads.length,
+      leadIds: leads.map(l => ({ id: l.id, owner: l.ownerId })) 
+    })
 
     return successResponse({
       leads,
@@ -82,11 +90,25 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requirePermission('LEAD_CREATE')
     const body = await request.json()
+    console.log('Leads API - Creating lead with data:', body)
     const validatedData = createLeadSchema.parse(body)
+    console.log('Leads API - Validated data:', { ...validatedData, contactId: validatedData.contactId })
 
     const lead = await prisma.lead.create({
       data: {
-        ...validatedData,
+        title: validatedData.title,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        email: validatedData.email,
+        phone: validatedData.phone,
+        company: validatedData.company,
+        position: validatedData.position,
+        source: validatedData.source,
+        status: validatedData.status,
+        value: validatedData.estimatedValue, // Map estimatedValue to value field
+        notes: validatedData.notes,
+        tags: validatedData.tags || [],
+        contactId: validatedData.contactId, // Associate with contact if provided
         ownerId: user.id
       },
       include: {

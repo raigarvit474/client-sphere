@@ -17,6 +17,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Dialog } from '@/components/ui/dialog'
 import { AddContactForm } from '@/components/forms/add-contact-form'
+import { EditContactForm } from '@/components/forms/edit-contact-form'
+import { CreateLeadFromContactForm } from '@/components/forms/create-lead-from-contact-form'
+import { CreateDealFromContactForm } from '@/components/forms/create-deal-from-contact-form'
+import { ContactDetailsModal } from '@/components/modals/contact-details-modal'
+import { DeleteContactDialog } from '@/components/modals/delete-contact-dialog'
 
 interface Contact {
   id: string
@@ -61,120 +66,56 @@ export default function ContactsPageClient() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isCreateLeadDialogOpen, setIsCreateLeadDialogOpen] = useState(false)
+  const [isCreateDealDialogOpen, setIsCreateDealDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
 
-  // Mock data for now
-  useEffect(() => {
-    setTimeout(() => {
-      const mockContacts: Contact[] = [
-        {
-          id: '1',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@techcorp.com',
-          phone: '+1-555-0123',
-          company: 'TechCorp Inc',
-          position: 'CTO',
-          notes: 'Key decision maker for enterprise solutions',
-          tags: ['enterprise', 'tech'],
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          _count: {
-            leads: 2,
-            deals: 1,
-            activities: 5
-          },
-          createdAt: '2024-01-15T10:30:00Z',
-          updatedAt: '2024-01-20T14:45:00Z'
-        },
-        {
-          id: '2',
-          firstName: 'Sarah',
-          lastName: 'Wilson',
-          email: 'sarah.wilson@marketing.com',
-          phone: '+1-555-0124',
-          company: 'Marketing Pro',
-          position: 'Marketing Director',
-          notes: 'Interested in marketing automation tools',
-          tags: ['marketing', 'automation'],
-          owner: {
-            id: '2',
-            name: 'Sales Manager',
-            email: 'manager@crm.com'
-          },
-          _count: {
-            leads: 1,
-            deals: 2,
-            activities: 8
-          },
-          createdAt: '2024-01-10T09:15:00Z',
-          updatedAt: '2024-01-18T11:20:00Z'
-        },
-        {
-          id: '3',
-          firstName: 'Mike',
-          lastName: 'Johnson',
-          email: 'mike.johnson@cloudtech.com',
-          company: 'CloudTech Solutions',
-          position: 'IT Director',
-          notes: 'Looking to migrate to cloud infrastructure',
-          tags: ['cloud', 'infrastructure'],
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          _count: {
-            leads: 1,
-            deals: 1,
-            activities: 4
-          },
-          createdAt: '2024-01-20T16:00:00Z',
-          updatedAt: '2024-01-22T16:00:00Z'
-        },
-        {
-          id: '4',
-          firstName: 'Lisa',
-          lastName: 'Davis',
-          email: 'lisa.davis@smallbiz.com',
-          phone: '+1-555-0125',
-          company: 'Small Biz Co',
-          position: 'Owner',
-          notes: 'Small business owner, budget conscious',
-          tags: ['small-business', 'budget'],
-          owner: {
-            id: '1',
-            name: 'Sales Rep',
-            email: 'rep@crm.com'
-          },
-          _count: {
-            leads: 0,
-            deals: 1,
-            activities: 3
-          },
-          createdAt: '2024-01-05T13:30:00Z',
-          updatedAt: '2024-01-25T17:20:00Z'
-        }
-      ]
-
-      setContacts(mockContacts)
-
+  // Fetch contacts from API
+  const fetchContacts = async () => {
+    try {
+      setLoading(true)
+      console.log('Fetching contacts...')
+      const response = await fetch('/api/contacts')
+      console.log('Response status:', response.status)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API Error:', errorText)
+        throw new Error('Failed to fetch contacts')
+      }
+      const response_data = await response.json()
+      console.log('Received API response:', response_data)
+      
+      // The API returns { success: true, data: { contacts: [...], pagination: {...} } }
+      const data = response_data.data || response_data
+      console.log('Extracted data:', data)
+      
+      setContacts(data.contacts || [])
+      
       // Calculate stats
-      const withEmail = mockContacts.filter(contact => contact.email).length
-      const withPhone = mockContacts.filter(contact => contact.phone).length
-      const uniqueCompanies = new Set(mockContacts.map(contact => contact.company).filter(Boolean)).size
-
+      const contacts = data.contacts || []
+      const withEmail = contacts.filter((contact: Contact) => contact.email).length
+      const withPhone = contacts.filter((contact: Contact) => contact.phone).length
+      const uniqueCompanies = new Set(contacts.map((contact: Contact) => contact.company).filter(Boolean)).size
+      
       setStats({
-        total: mockContacts.length,
+        total: contacts.length,
         withEmail,
         withPhone,
         uniqueCompanies
       })
-
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
+
+  useEffect(() => {
+    fetchContacts()
   }, [])
 
   const filteredContacts = contacts.filter(contact =>
@@ -185,44 +126,223 @@ export default function ContactsPageClient() {
   )
 
   const handleCreateContact = async (data: any) => {
-    // Simulate API call
-    const newContact: Contact = {
-      id: Date.now().toString(),
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email || undefined,
-      phone: data.phone || undefined,
-      company: data.company || undefined,
-      position: data.position || undefined,
-      notes: data.notes || undefined,
-      tags: data.tags || [],
-      owner: {
-        id: session?.user?.id || '1',
-        name: session?.user?.name || 'Current User',
-        email: session?.user?.email || 'user@crm.com'
-      },
-      _count: {
-        leads: 0,
-        deals: 0,
-        activities: 0
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    try {
+      console.log('Creating contact with data:', data)
+      const response = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email || undefined,
+          phone: data.phone || undefined,
+          company: data.company || undefined,
+          position: data.position || undefined,
+          address: data.address || undefined,
+          city: data.city || undefined,
+          state: data.state || undefined,
+          zipCode: data.zipCode || undefined,
+          country: data.country || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || []
+        })
+      })
+      console.log('Create contact response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Create contact error:', errorText)
+        throw new Error('Failed to create contact')
+      }
+
+      const newContact = await response.json()
+      console.log('Contact created successfully:', newContact)
+      
+      // Refresh the contacts list
+      console.log('Refreshing contacts list...')
+      await fetchContacts()
+    } catch (error) {
+      console.error('Error creating contact:', error)
+      throw error // Let the form handle the error
     }
+  }
 
-    setContacts(prev => [newContact, ...prev])
-    
-    // Update stats
-    setStats(prev => ({
-      total: prev.total + 1,
-      withEmail: prev.withEmail + (data.email ? 1 : 0),
-      withPhone: prev.withPhone + (data.phone ? 1 : 0),
-      uniqueCompanies: data.company && !contacts.find(c => c.company === data.company) 
-        ? prev.uniqueCompanies + 1 
-        : prev.uniqueCompanies
-    }))
+  const handleEditContact = async (data: any) => {
+    if (!selectedContact) return
+    try {
+      console.log('Updating contact with data:', data)
+      const response = await fetch(`/api/contacts/${selectedContact.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email || undefined,
+          phone: data.phone || undefined,
+          company: data.company || undefined,
+          position: data.position || undefined,
+          address: data.address || undefined,
+          city: data.city || undefined,
+          state: data.state || undefined,
+          zipCode: data.zipCode || undefined,
+          country: data.country || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || []
+        })
+      })
 
-    console.log('Contact created:', newContact)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update contact error:', errorText)
+        throw new Error('Failed to update contact')
+      }
+
+      console.log('Contact updated successfully')
+      await fetchContacts()
+      setIsEditDialogOpen(false)
+      setSelectedContact(null)
+    } catch (error) {
+      console.error('Error updating contact:', error)
+      throw error
+    }
+  }
+
+  const handleDeleteContact = async (contactId: string) => {
+    try {
+      console.log('Deleting contact:', contactId)
+      const response = await fetch(`/api/contacts/${contactId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Delete contact error:', errorText)
+        throw new Error('Failed to delete contact')
+      }
+
+      console.log('Contact deleted successfully')
+      await fetchContacts()
+      setIsDeleteDialogOpen(false)
+      setSelectedContact(null)
+    } catch (error) {
+      console.error('Error deleting contact:', error)
+      throw error
+    }
+  }
+
+  const handleCreateLeadFromContact = async (data: any) => {
+    try {
+      console.log('Creating lead from contact with data:', data)
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.title,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email || undefined,
+          phone: data.phone || undefined,
+          company: data.company || undefined,
+          position: data.position || undefined,
+          source: data.source || undefined,
+          status: data.status || 'NEW',
+          estimatedValue: data.estimatedValue || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || [],
+          contactId: selectedContact?.id // Associate with the selected contact
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Create lead error:', errorText)
+        throw new Error('Failed to create lead')
+      }
+
+      console.log('Lead created successfully')
+      
+      // Refresh the contacts list to update the activity counts
+      console.log('Refreshing contacts list to update activity counts...')
+      await fetchContacts()
+      
+      setIsCreateLeadDialogOpen(false)
+      setSelectedContact(null)
+    } catch (error) {
+      console.error('Error creating lead:', error)
+      throw error
+    }
+  }
+
+  const handleCreateDealFromContact = async (data: any) => {
+    try {
+      console.log('Creating deal from contact with data:', data)
+      const response = await fetch('/api/deals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.title,
+          value: data.value,
+          stage: data.stage || 'PROSPECTING',
+          probability: data.probability || 0,
+          expectedCloseDate: data.expectedCloseDate || undefined,
+          source: data.source || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || [],
+          contactId: data.contactId
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Create deal error:', errorText)
+        throw new Error('Failed to create deal')
+      }
+
+      console.log('Deal created successfully')
+      
+      // Refresh the contacts list to update the activity counts
+      console.log('Refreshing contacts list to update activity counts...')
+      await fetchContacts()
+      
+      setIsCreateDealDialogOpen(false)
+      setSelectedContact(null)
+    } catch (error) {
+      console.error('Error creating deal:', error)
+      throw error
+    }
+  }
+
+  const openDetailsModal = (contact: Contact) => {
+    setSelectedContactId(contact.id)
+    setIsDetailsModalOpen(true)
+  }
+
+  const openEditDialog = (contact: Contact) => {
+    setSelectedContact(contact)
+    setIsEditDialogOpen(true)
+  }
+
+  const openDeleteDialog = (contact: Contact) => {
+    setSelectedContact(contact)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const openCreateLeadDialog = (contact: Contact) => {
+    setSelectedContact(contact)
+    setIsCreateLeadDialogOpen(true)
+  }
+
+  const openCreateDealDialog = (contact: Contact) => {
+    setSelectedContact(contact)
+    setIsCreateDealDialogOpen(true)
   }
 
   const formatDate = (dateString: string) => {
@@ -436,12 +556,23 @@ export default function ContactsPageClient() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Contact</DropdownMenuItem>
-                          <DropdownMenuItem>Create Lead</DropdownMenuItem>
-                          <DropdownMenuItem>Create Deal</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openDetailsModal(contact)}>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditDialog(contact)}>
+                            Edit Contact
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openCreateLeadDialog(contact)}>
+                            Create Lead
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openCreateDealDialog(contact)}>
+                            Create Deal
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem 
+                            className="text-red-600" 
+                            onClick={() => openDeleteDialog(contact)}
+                          >
                             Delete Contact
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -466,6 +597,72 @@ export default function ContactsPageClient() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modals and Dialogs */}
+      <ContactDetailsModal
+        contactId={selectedContactId}
+        open={isDetailsModalOpen}
+        onOpenChange={setIsDetailsModalOpen}
+        onEdit={(contact) => {
+          setIsDetailsModalOpen(false)
+          openEditDialog(contact)
+        }}
+        onDelete={(contactId) => {
+          setIsDetailsModalOpen(false)
+          const contact = contacts.find(c => c.id === contactId)
+          if (contact) openDeleteDialog(contact)
+        }}
+        onCreateLead={(contact) => {
+          setIsDetailsModalOpen(false)
+          openCreateLeadDialog(contact)
+        }}
+        onCreateDeal={(contact) => {
+          setIsDetailsModalOpen(false)
+          openCreateDealDialog(contact)
+        }}
+      />
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        {selectedContact && (
+          <EditContactForm
+            contact={selectedContact}
+            onSubmit={handleEditContact}
+            onCancel={() => setIsEditDialogOpen(false)}
+          />
+        )}
+      </Dialog>
+
+      <Dialog open={isCreateLeadDialogOpen} onOpenChange={setIsCreateLeadDialogOpen}>
+        {selectedContact && (
+          <CreateLeadFromContactForm
+            contact={selectedContact}
+            onSubmit={handleCreateLeadFromContact}
+            onCancel={() => setIsCreateLeadDialogOpen(false)}
+          />
+        )}
+      </Dialog>
+
+      <Dialog open={isCreateDealDialogOpen} onOpenChange={setIsCreateDealDialogOpen}>
+        {selectedContact && (
+          <CreateDealFromContactForm
+            contact={selectedContact}
+            onSubmit={handleCreateDealFromContact}
+            onCancel={() => setIsCreateDealDialogOpen(false)}
+          />
+        )}
+      </Dialog>
+
+      <DeleteContactDialog
+        contact={selectedContact ? {
+          ...selectedContact,
+          leads: selectedContact._count?.leads || 0,
+          deals: selectedContact._count?.deals || 0,
+          activities: selectedContact._count?.activities || 0
+        } : null}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDeleteContact}
+      />
     </div>
   )
 }
